@@ -1,0 +1,6 @@
+# Private keys and keystores — never commit
+*.key
+*.p12
+*.pfx
+axis-mtls-client.key
+certificates/

@@ -1,0 +1,7 @@
+# Private keys and keystores — never commit
+*.key
+*.p12
+*.pfx
+encrypted.key
+temp-*.pem
+*.zip

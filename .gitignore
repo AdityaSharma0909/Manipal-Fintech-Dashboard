@@ -1,0 +1,32 @@
+# Dependency directories
+**/node_modules/
+**/jspm_packages/
+.venv/
+venv/
+ENV/
+
+# Build outputs
+**/dist/
+**/build/
+**/out/
+
+# Environment files
+**/.env
+**/.env.prod
+**/.env.*
+**/.env.local
+
+# Database dumps and large files
+*.sql
+*.xlsx
+*.csv
+*.docx
+*.pdf
+
+# OS metadata and IDEs
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.suo
+*.sln
