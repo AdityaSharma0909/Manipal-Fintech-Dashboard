@@ -41,7 +41,8 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost:3000',
     'https://localhost:3000',
     'http://91.203.132.113',
-    'http://91.203.132.113:8000'
+    'http://91.203.132.113:8000',
+    'https://manipal-fintech-dashboard.vercel.app',
 ]
 
 # CORS settings
@@ -53,7 +54,8 @@ CORS_ALLOWED_ORIGINS = [
     'https://manipal.getafixtechnologies.com',
     'https://manipal.getafixtechnologies.com:81',
     'https://devmanipal.getafixtechnologies.com',
-    'https://164.52.198.201'
+    'https://164.52.198.201',
+    'https://manipal-fintech-dashboard.vercel.app',
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -243,7 +245,8 @@ TEMPLATES = [
         },
     },
 ]
-CORS_ORIGIN_ALLOW_ALL = True
+CORS_ORIGIN_ALLOW_ALL = False
+CORS_ALLOW_ALL_ORIGINS = False
 
 WSGI_APPLICATION = 'radian_backend.wsgi.application'
 
