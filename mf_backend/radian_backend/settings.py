@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 
 from pathlib import Path
 import sys
-from utils.envSetup import environment
+from utils.envSetup import environment, env
 from radian_backend.sentry import init_sentry
 
 
@@ -306,18 +306,10 @@ SPECTACULAR_SETTINGS = {
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
 DATABASES = {
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.sqlite3',
-    #     'NAME': BASE_DIR / 'db.sqlite3',
-    # }
-
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': environment.DJANGO_POSTGRES_DATABASE,
-        'USER': environment.DJANGO_POSTGRES_USER,
-        'PASSWORD': environment.DJANGO_POSTGRES_PASSWORD,
-        'HOST': environment.DJANGO_POSTGRES_HOST,
-    },
+    'default': env.db(
+        'DATABASE_URL',
+        default=f"postgres://{environment.DJANGO_POSTGRES_USER or ''}:{environment.DJANGO_POSTGRES_PASSWORD or ''}@{environment.DJANGO_POSTGRES_HOST or 'localhost'}:{environment.DJANGO_POSTGRES_PORT or 5432}/{environment.DJANGO_POSTGRES_DATABASE or ''}"
+    )
 }
 
 
