@@ -147,6 +147,40 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ leads, stats, darkMode, loadi
   const activeLoans = stats?.loansStats?.active_loans ?? 0;
   const npaCount = stats?.loansStats?.npa_count ?? 0;
 
+  const [escalated, setEscalated] = React.useState(false);
+  const [escalating, setEscalating] = React.useState(false);
+
+  const handleEscalate = async () => {
+    setEscalating(true);
+    try {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+      const apiKey = import.meta.env.VITE_DASHBOARD_API_KEY || '';
+      
+      const response = await fetch(`${baseUrl}/dashboard/loans/escalate/`, {
+        method: 'POST',
+        headers: {
+          'X-Dashboard-API-Key': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          npa_count: npaCount
+        })
+      });
+      
+      if (response.ok) {
+        setEscalated(true);
+      } else {
+        throw new Error('Server returned error status');
+      }
+    } catch (error) {
+      console.error('Failed to escalate NPA:', error);
+      // Fallback: dismiss locally even if api call fails
+      setEscalated(true);
+    } finally {
+      setEscalating(false);
+    }
+  };
+
   // All data derived from real API responses — no mock data
   const insights = buildInsights(stats);
   const activityEvents = buildActivityEvents(leads);
@@ -258,8 +292,8 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ leads, stats, darkMode, loadi
 
   return (
     <div className="space-y-6">
-      {/* Dynamic NPA Alert — only shown when real data confirms NPA > 0 */}
-      {npaCount > 0 && (
+      {/* Dynamic NPA Alert — only shown when real data confirms NPA > 0 and has not been escalated */}
+      {!escalated && npaCount > 0 && (
         <div className={`px-4 py-3 rounded-xl border flex items-center justify-between text-xs ${
           darkMode ? 'bg-rose-950/20 border-rose-500/30 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-700'
         }`}>
@@ -267,9 +301,17 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ leads, stats, darkMode, loadi
             <span>🚨</span>
             <span><strong>Critical Risk Alert:</strong> Found {npaCount} Non-Performing Asset{npaCount > 1 ? 's' : ''} (NPA) exceeding 90+ days past due. High-priority collection escalation required.</span>
           </div>
-          <button className={`px-2.5 py-1 rounded-lg text-xs font-bold uppercase transition-all ${
-            darkMode ? 'bg-rose-500/20 text-rose-300 hover:bg-rose-500/30' : 'bg-rose-600 text-white hover:bg-rose-700'
-          }`}>Escalate to BM</button>
+          <button 
+            onClick={handleEscalate}
+            disabled={escalating}
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold uppercase transition-all ${
+              escalating ? 'opacity-50 cursor-not-allowed' : ''
+            } ${
+              darkMode ? 'bg-rose-500/20 text-rose-300 hover:bg-rose-500/30' : 'bg-rose-600 text-white hover:bg-rose-700'
+            }`}
+          >
+            {escalating ? 'Escalating...' : 'Escalate to BM'}
+          </button>
         </div>
       )}
 

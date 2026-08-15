@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/4.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.0/ref/settings/
 """
-
+import os
 from pathlib import Path
 import sys
 from utils.envSetup import environment, env
@@ -255,7 +255,6 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.SessionAuthentication',
         'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
-        'radian_backend.auth.AutoLoginAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.AllowAny',
@@ -304,7 +303,7 @@ SPECTACULAR_SETTINGS = {
 
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
-
+print("DATABASE_URL exists:", bool(os.environ.get("DATABASE_URL")))
 DATABASES = {
     'default': env.db(
         'DATABASE_URL',
@@ -545,8 +544,8 @@ WORKAPPS_API_KEY = environment.WORKAPPS_API_KEY
 WORKAPPS_API_SECRET = environment.WORKAPPS_API_SECRET
 
 # ZOOP Credentials
-ZOOP_APP_ID = "6257bb6ab1ff4b001d3c01fd"
-ZOOP_API_KEY = "19Q144Q-5HHMT02-P0R3VCD-XM6W8CR"
+ZOOP_APP_ID = os.getenv("ZOOP_APP_ID", "6257bb6ab1ff4b001d3c01fd")
+ZOOP_API_KEY = os.getenv("ZOOP_API_KEY", "19Q144Q-5HHMT02-P0R3VCD-XM6W8CR")
 
 # ZOOP API URLs
 ZOOP_PAN_URL = "https://test.zoop.one/api/v1/in/identity/pan/pro"
@@ -580,7 +579,7 @@ LEEGALITY_STAMP_DETAILS_URL = f"{LEEGALITY_API_BASE}/series/list"
 LEEGALITY_STAMP_GROUPS_URL = f"{LEEGALITY_API_BASE}/series/groups/list"
 
 # SMSGatewayHub Config
-SMS_API_KEY = "089790f1-8c30-4ec8-b669-10c9e3db3d0b"
+SMS_API_KEY = os.getenv("SMS_API_KEY", "089790f1-8c30-4ec8-b669-10c9e3db3d0b")
 SMS_SENDER_ID = "MNIPLF"
 SMS_ENTITY_ID = "1201173893563835134"
 SMS_TEMPLATE_ID = "1007172090059222355"
@@ -604,3 +603,7 @@ SMS_BT_PAN_VERIFICATION_OTP_TEXT = (
     "our sales officer for service and assessment purposes. - Team Manipal Fintech "
     "(LSP of Simplepay Finance Pvt Ltd)"
 )
+
+# Dynamically append AutoLoginAuthentication for non-production environments with DEBUG = True
+if environment.APP_ENV != 'PROD' and DEBUG:
+    REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES'].append('radian_backend.auth.AutoLoginAuthentication')

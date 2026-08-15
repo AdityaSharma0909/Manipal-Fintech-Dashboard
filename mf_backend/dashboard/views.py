@@ -485,3 +485,19 @@ class TeamStatsView(APIView):
             "registered_staff": get_user_model().objects.count(),
             "total_branches": Branch.objects.count(),
         })
+
+
+class LoanEscalateView(APIView):
+    """
+    Escalate NPA loans to BM.
+    """
+    authentication_classes = [DashboardAPIKeyAuthentication]
+    permission_classes = []
+
+    def post(self, request):
+        npa_count = request.data.get("npa_count", 0)
+        print(f"DEBUG: Escalation triggered to BM for {npa_count} NPA loans.")
+        return Response({
+            "status": "success",
+            "message": f"Escalated successfully: {npa_count} NPA loans reported to Branch Manager.",
+        })

@@ -30,3 +30,17 @@ Thumbs.db
 .vscode/
 *.suo
 *.sln
+
+# Secrets, private keys, and certificates
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.cer
+*.crt
+*.csr
+keys/
+certs/
+Axis_Certificates/
+*adminsdk.json
