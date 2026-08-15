@@ -37,6 +37,7 @@ Thumbs.db
 *.p12
 *.pfx
 *.jks
+*.jks.old
 *.cer
 *.crt
 *.csr
