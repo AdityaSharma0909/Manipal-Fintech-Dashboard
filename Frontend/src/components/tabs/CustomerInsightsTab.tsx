@@ -46,19 +46,15 @@ const CustomerInsightsTab: React.FC<CustomerInsightsTabProps> = ({ leads, stats,
   const branches = stats?.teamStats?.conversions_per_branch || [];
   const liveRegionData = branches.length > 0
     ? branches.slice(0, 5).map((b: any) => {
-        const approved = Number(b.approved_applications) || 0;
-        const total = Number(b.total_applications) || 1;
-        const health = Math.round((approved / total) * 100);
+        const total = Number(b.total_applications) || 0;
+        const rate = Number(b.conversion_rate_pct) || 0;
         return {
           name: b.branch_name,
           users: total,
-          health: isNaN(health) ? 50 : health
+          health: Math.round(rate)
         };
       })
-    : [
-        { name: 'South', users: 10, health: 85 },
-        { name: 'North', users: 5, health: 70 }
-      ];
+    : [];
 
   return (
     <div className="space-y-6">

@@ -32,7 +32,7 @@ const buildDailyActiveData = (leads: Lead[]) => {
 
   return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => ({
     day,
-    users: counts[day].users || 1,
+    users: counts[day].users || 0,
     newUsers: counts[day].newUsers,
   }));
 };
@@ -42,13 +42,14 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ leads, stats, darkMode }) =
 
   // Map branch conversions dynamically to fit RegionCards format
   const branchCardsData = (stats?.teamStats?.conversions_per_branch || []).map((branch: any) => {
+    const rate = branch.conversion_rate_pct || 0;
     return {
       name: branch.branch_name,
-      users: branch.total_applications, // total apps punched
-      growth: branch.conversion_rate_pct, // conversion rate
-      revenue: branch.disbursed * 150000, // estimated disbursed amount for rendering (e.g. ₹1.5L per loan)
-      health: branch.conversion_rate_pct >= 50 ? 92 : 72,
-      trend: [12, 18, 30, 48, 55, branch.conversion_rate_pct || 10],
+      users: branch.total_applications || 0, // total apps punched
+      growth: rate, // conversion rate
+      revenue: (branch.disbursed || 0) * 100000, // estimated disbursed amount
+      health: rate >= 50 ? 92 : (rate > 0 ? 70 : 0),
+      trend: [0, 0, 0, 0, 0, rate],
     };
   });
 
@@ -62,26 +63,37 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ leads, stats, darkMode }) =
     };
   });
 
-  // Repayment Collection Efficiency Trend (Mocked realistically)
+  // Repayment Collection Efficiency Rate derived from active loans vs NPA count
+  const totalLoansCount = stats?.loansStats?.total_loans || 0;
+  const npaCount = stats?.loansStats?.npa_count || 0;
+  const performingRate = totalLoansCount > 0 ? Math.round(((totalLoansCount - npaCount) / totalLoansCount) * 1000) / 10 : 0;
+
   const collectionTrendData = [
-    { week: 'W1', rate: 96.4 },
-    { week: 'W2', rate: 97.8 },
-    { week: 'W3', rate: 95.2 },
-    { week: 'W4', rate: 98.1 },
+    { week: 'W1', rate: performingRate },
+    { week: 'W2', rate: performingRate },
+    { week: 'W3', rate: performingRate },
+    { week: 'W4', rate: performingRate },
   ];
 
-  // Appraisal peak hours
-  const peakHoursData = [
-    { hour: '9am', users: 5 },
-    { hour: '10am', users: 18 },
-    { hour: '11am', users: 35 },
-    { hour: '12pm', users: 48 },
-    { hour: '1pm', users: 28 },
-    { hour: '2pm', users: 32 },
-    { hour: '3pm', users: 44 },
-    { hour: '4pm', users: 20 },
-    { hour: '5pm', users: 8 },
-  ];
+  // Appraisal peak hours calculated from lead creation timestamps
+  const hourList = ['9am', '10am', '11am', '12pm', '1pm', '2pm', '3pm', '4pm', '5pm'];
+  const hrCounts: Record<string, number> = {};
+  hourList.forEach(h => { hrCounts[h] = 0; });
+  leads.forEach(l => {
+    const hr = new Date(l.created_at).getHours();
+    let b = '12pm';
+    if (hr >= 9 && hr < 10) b = '9am';
+    else if (hr >= 10 && hr < 11) b = '10am';
+    else if (hr >= 11 && hr < 12) b = '11am';
+    else if (hr >= 12 && hr < 13) b = '12pm';
+    else if (hr >= 13 && hr < 14) b = '1pm';
+    else if (hr >= 14 && hr < 15) b = '2pm';
+    else if (hr >= 15 && hr < 16) b = '3pm';
+    else if (hr >= 16 && hr < 17) b = '4pm';
+    else if (hr >= 17) b = '5pm';
+    hrCounts[b] += 1;
+  });
+  const peakHoursData = hourList.map(hour => ({ hour, users: hrCounts[hour] || 0 }));
 
   return (
     <div className="space-y-6">

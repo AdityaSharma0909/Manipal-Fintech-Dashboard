@@ -36,7 +36,7 @@ export const useDashboardStats = (fromDate?: string, toDate?: string): UseDashbo
     }
     setError(null);
 
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
     const apiKey = import.meta.env.VITE_DASHBOARD_API_KEY || '';
 
     const headers: Record<string, string> = {

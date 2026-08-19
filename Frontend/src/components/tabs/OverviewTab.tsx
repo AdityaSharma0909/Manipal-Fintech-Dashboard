@@ -140,10 +140,10 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ leads, stats, darkMode, loadi
   // Extract real database metrics from backend stats
   const leadsCount = stats?.leadsStats?.combined_total ?? totalCount ?? 0;
   const applicationsCount = stats?.applicationsStats?.total_applications ?? 0;
-  const totalUsers = stats?.teamStats?.registered_staff ?? 82;
-  const uniqueUsersCount = stats?.teamStats?.unique_users ?? (leads.length > 0 ? new Set(leads.map(l => l.contact_number || l.pan_number || l.name)).size : 214);
-  const totalUserSessions = stats?.teamStats?.total_users ?? (uniqueUsersCount * 5 + 740);
-  const totalBranches = stats?.teamStats?.total_branches ?? 5;
+  const totalUsers = stats?.teamStats?.registered_staff ?? 0;
+  const uniqueUsersCount = stats?.teamStats?.unique_users ?? (leads.length > 0 ? new Set(leads.map(l => l.phone || l.name)).size : 0);
+  const totalUserSessions = stats?.teamStats?.total_users ?? 0;
+  const totalBranches = stats?.teamStats?.total_branches ?? 0;
   const activeLoans = stats?.loansStats?.active_loans ?? 0;
   const npaCount = stats?.loansStats?.npa_count ?? 0;
 
@@ -153,7 +153,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ leads, stats, darkMode, loadi
   const handleEscalate = async () => {
     setEscalating(true);
     try {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
       const apiKey = import.meta.env.VITE_DASHBOARD_API_KEY || '';
       
       const response = await fetch(`${baseUrl}/dashboard/loans/escalate/`, {

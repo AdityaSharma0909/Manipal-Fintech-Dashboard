@@ -138,10 +138,10 @@ const App: React.FC = () => {
           {/* API Error Banner */}
           {error && (
             <div className={`mx-6 mt-4 px-4 py-3 rounded-xl border text-xs flex items-center gap-2 ${
-              darkMode ? 'bg-amber-900/20 border-amber-500/30 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700'
+              darkMode ? 'bg-rose-900/20 border-rose-500/30 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-700'
             }`}>
               <span>⚠️</span>
-              <span><strong>API Notice:</strong> {error} — Displaying demo data. Verify backend URL and API key in Settings.</span>
+              <span><strong>API Error:</strong> Unable to load live database responses ({error}). Please check Django server status and API key in Settings.</span>
             </div>
           )}
 
@@ -171,8 +171,8 @@ const App: React.FC = () => {
                   <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border ${
                     darkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-white border-gray-250 text-gray-600'
                   }`}>
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    Live · {totalCount > 0 ? `${totalCount} records` : 'Demo Data'}
+                    <div className={`w-1.5 h-1.5 rounded-full ${error ? 'bg-rose-500' : 'bg-emerald-500'} animate-pulse`} />
+                    {error ? 'API Offline' : `Live · ${totalCount} records`}
                   </div>
                 </div>
               </div>

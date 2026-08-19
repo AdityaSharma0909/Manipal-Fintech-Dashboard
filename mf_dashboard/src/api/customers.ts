@@ -45,17 +45,13 @@ export const getGeographicFootprint = async (filters: GlobalFilters): Promise<Br
         break;
       }
     }
-    
-    // Add minor jitter so multiple branches in the same city don't stack exactly on top of each other
-    const jitterLat = (Math.random() - 0.5) * 0.05;
-    const jitterLng = (Math.random() - 0.5) * 0.05;
 
     return {
       branchId: branch.branch_id,
       branchName: branch.branch_name,
       branchCode: branch.branch_code,
-      latitude: coords.lat + jitterLat,
-      longitude: coords.lng + jitterLng,
+      latitude: (branch as any).latitude ? parseFloat((branch as any).latitude) : coords.lat,
+      longitude: (branch as any).longitude ? parseFloat((branch as any).longitude) : coords.lng,
       applications: branch.total_applications,
       disbursed: branch.disbursed,
       conversionRate: branch.conversion_rate_pct,

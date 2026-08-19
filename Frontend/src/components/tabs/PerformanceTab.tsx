@@ -14,11 +14,11 @@ const PerformanceTab: React.FC<PerformanceTabProps> = ({ darkMode, apiLatencyMs 
     { title: 'Database connection pool exhausted', time: 'Dec 15, 09:15', status: 'resolved', duration: '28 min' },
   ];
 
-  const currentLatency = apiLatencyMs || 124; // Fallback to 124 if null
+  const currentLatency = apiLatencyMs ?? 0;
 
   const slaMetrics = [
     { label: 'Uptime SLA', target: '99.9%', actual: '100.0%', status: 'met' },
-    { label: 'API Response SLA', target: '<200ms', actual: `${currentLatency}ms`, status: currentLatency < 200 ? 'met' : 'breached' },
+    { label: 'API Response SLA', target: '<200ms', actual: currentLatency > 0 ? `${currentLatency}ms` : 'N/A', status: currentLatency > 0 && currentLatency < 200 ? 'met' : 'breached' },
     { label: 'Error Rate SLA', target: '<0.5%', actual: '0.00%', status: 'met' },
     { label: 'Support SLA', target: '<2h', actual: '1.4h', status: 'met' },
   ];
@@ -27,17 +27,17 @@ const PerformanceTab: React.FC<PerformanceTabProps> = ({ darkMode, apiLatencyMs 
   const livePerformanceMetrics = {
     uptime: 100.0,
     apiLatency: currentLatency,
-    dbPerformance: currentLatency < 150 ? 98 : 85,
+    dbPerformance: currentLatency > 0 && currentLatency < 150 ? 98 : 85,
     errorRate: 0.00,
     backgroundJobs: 100,
     cloudStorage: 68,
     queueSize: 0,
   };
 
-  // Generate a realistic-looking flatline for throughput since we don't have historical API logs
+  // Throughput chart mapped cleanly without random numbers
   const liveMonthlyData = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'].map(month => ({
     month,
-    mau: Math.floor(Math.random() * 500) + 4000,
+    mau: 0,
     revenue: 0,
     newOrgs: 0
   }));

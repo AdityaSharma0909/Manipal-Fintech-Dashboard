@@ -21,7 +21,7 @@ const CustomerPanel: React.FC<CustomerPanelProps> = ({ customer, onClose, darkMo
 
   const trendData = Array.from({ length: 8 }, (_, i) => ({
     i,
-    v: 50 + Math.sin(i * 0.8) * 20 + Math.random() * 10
+    v: 50 + Math.sin(i * 0.8) * 20
   }));
 
   const stats = [

@@ -13,103 +13,44 @@ interface ActivityTabProps {
 
 const buildActivityTimeline = (leads: Lead[]) => {
   const events: any[] = [];
-  
-  // Specific detailed logging for our key synthetic dataset leads if they exist
-  const keyLeads = leads.filter(l => ['Aarav Sharma', 'Priya Iyer', 'Rajesh Patil', 'Kavitha Reddy', 'Vikram Malhotra'].includes(l.name));
-  const otherLeads = leads.filter(l => !['Aarav Sharma', 'Priya Iyer', 'Rajesh Patil', 'Kavitha Reddy', 'Vikram Malhotra'].includes(l.name));
 
-  // 1. Aarav Sharma
-  const aarav = keyLeads.find(l => l.name === 'Aarav Sharma');
-  if (aarav) {
-    events.push(
-      { id: 'aarav-1', type: 'signin', user: 'Aarav Sharma', action: 'Lead sourced via MG Road Branch (Gold Loan)', time: '2025-01-10', category: 'Leads', avatar: 'AS' },
-      { id: 'aarav-2', type: 'workspace', user: 'Aarav Sharma', action: 'Gold collateral appraised (4 Bangles, 47g adjusted weight)', time: '2025-01-10', category: 'Underwriting', avatar: 'AS' },
-      { id: 'aarav-3', type: 'upgrade', user: 'Aarav Sharma', action: 'Loan LN-2025-1001 disbursed: ₹1,50,000 via NEFT', time: '2025-01-12', category: 'Disbursement', avatar: 'AS' },
-      { id: 'aarav-4', type: 'ai', user: 'Aarav Sharma', action: 'Monthly EMI payment of ₹15,000 received via UPI', time: '2025-02-12', category: 'Repayments', avatar: 'AS' }
-    );
-  }
-
-  // 2. Priya Iyer
-  const priya = keyLeads.find(l => l.name === 'Priya Iyer');
-  if (priya) {
-    events.push(
-      { id: 'priya-1', type: 'signin', user: 'Priya Iyer', action: 'Lead sourced via Digital App (Gold Loan)', time: '2025-01-12', category: 'Leads', avatar: 'PI' },
-      { id: 'priya-2', type: 'workspace', user: 'Priya Iyer', action: 'Gold collateral appraised (1 Necklace, 93g adjusted weight)', time: '2025-01-12', category: 'Underwriting', avatar: 'PI' },
-      { id: 'priya-3', type: 'upgrade', user: 'Priya Iyer', action: 'Loan LN-2025-1002 disbursed: ₹3,00,000 via RTGS', time: '2025-01-15', category: 'Disbursement', avatar: 'PI' },
-      { id: 'priya-4', type: 'ai', user: 'Priya Iyer', action: 'Monthly EMI payment of ₹35,100 received via UPI', time: '2025-02-15', category: 'Repayments', avatar: 'PI' }
-    );
-  }
-
-  // 3. Rajesh Patil
-  const rajesh = keyLeads.find(l => l.name === 'Rajesh Patil');
-  if (rajesh) {
-    events.push(
-      { id: 'rajesh-1', type: 'signin', user: 'Rajesh Patil', action: 'Lead sourced via Agent AGT-55 (Gold Loan)', time: '2025-01-15', category: 'Leads', avatar: 'RP' },
-      { id: 'rajesh-2', type: 'workspace', user: 'Rajesh Patil', action: 'Gold collateral appraised (2 Rings, 23.5g adjusted weight)', time: '2025-01-15', category: 'Underwriting', avatar: 'RP' },
-      { id: 'rajesh-3', type: 'upgrade', user: 'Rajesh Patil', action: 'Loan LN-2025-1003 disbursed: ₹75,000 via IMPS', time: '2025-01-18', category: 'Disbursement', avatar: 'RP' },
-      { id: 'rajesh-4', type: 'ai', user: 'Rajesh Patil', action: 'Full Loan Foreclosure settlement: ₹80,250 received via NEFT', time: '2025-02-28', category: 'Repayments', avatar: 'RP' },
-      { id: 'rajesh-5', type: 'report', user: 'Rajesh Patil', action: 'Loan LN-2025-1003 marked as CLOSED (Obligations Met)', time: '2025-02-28', category: 'Disbursement', avatar: 'RP' }
-    );
-  }
-
-  // 4. Kavitha Reddy
-  const kavitha = keyLeads.find(l => l.name === 'Kavitha Reddy');
-  if (kavitha) {
-    events.push(
-      { id: 'kavitha-1', type: 'signin', user: 'Kavitha Reddy', action: 'Lead sourced via Partner CSC (Personal Loan)', time: '2025-01-20', category: 'Leads', avatar: 'KR' },
-      { id: 'kavitha-2', type: 'report', user: 'Kavitha Reddy', action: 'Application APP-2025-004 declined: Low bureau score (520)', time: '2025-01-21', category: 'Underwriting', avatar: 'KR' }
-    );
-  }
-
-  // 5. Vikram Malhotra
-  const vikram = keyLeads.find(l => l.name === 'Vikram Malhotra');
-  if (vikram) {
-    events.push(
-      { id: 'vikram-1', type: 'signin', user: 'Vikram Malhotra', action: 'Lead sourced via Web (Gold Loan)', time: '2025-02-01', category: 'Leads', avatar: 'VM' },
-      { id: 'vikram-2', type: 'workspace', user: 'Vikram Malhotra', action: 'Gold collateral appraised (2 Chains, 147g adjusted weight)', time: '2025-02-01', category: 'Underwriting', avatar: 'VM' },
-      { id: 'vikram-3', type: 'upgrade', user: 'Vikram Malhotra', action: 'Loan LN-2025-1005 disbursed: ₹5,00,000 via NEFT', time: '2025-02-05', category: 'Disbursement', avatar: 'VM' },
-      { id: 'vikram-4', type: 'admin', user: 'Vikram Malhotra', action: 'Loan LN-2025-1005 marked as NPA (105 days past due)', time: '2025-03-01', category: 'NPA / Risk', avatar: 'VM' }
-    );
-  }
-
-  // Process any other database leads dynamically
-  otherLeads.forEach((lead) => {
-    const initials = lead.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  leads.forEach((lead) => {
+    const initials = lead.name ? lead.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'LD';
     const dateStr = lead.created_at ? lead.created_at.split('T')[0] : 'Just now';
-    
+
     events.push({
-      id: `dynamic-${lead.id}-source`,
+      id: `lead-${lead.id}-source`,
       type: 'signin',
-      user: lead.name,
-      action: `Lead sourced via ${lead.city || 'Digital'} (${lead.industry || 'Gold'})`,
+      user: lead.name || 'Lead',
+      action: `Lead sourced via ${lead.city || 'Branch'} (${lead.product_subcategory || lead.industry || 'Gold Loan'})`,
       time: dateStr,
       category: 'Leads',
       avatar: initials,
     });
 
-    if (lead.status === 'ACTIVE' || lead.status === 'Active') {
+    if (lead.status === 'ACTIVE' || lead.status === 'CONVERTED' || lead.status === 'DISBURSED') {
       events.push({
-        id: `dynamic-${lead.id}-appraise`,
-        type: 'workspace',
-        user: lead.name,
-        action: 'Gold purity and weight verified by Appraiser',
-        time: dateStr,
-        category: 'Underwriting',
-        avatar: initials,
-      });
-      events.push({
-        id: `dynamic-${lead.id}-disb`,
+        id: `lead-${lead.id}-disbursed`,
         type: 'upgrade',
-        user: lead.name,
-        action: `Loan disbursed: ₹${lead.revenue ? lead.revenue.toLocaleString('en-IN') : '1,00,000'} via NEFT`,
+        user: lead.name || 'Lead',
+        action: `Loan disbursed: ₹${lead.revenue ? lead.revenue.toLocaleString('en-IN') : '0'} via NEFT`,
         time: dateStr,
         category: 'Disbursement',
+        avatar: initials,
+      });
+    } else if (lead.status === 'REJECTED' || lead.status === 'CLOSED_LOST') {
+      events.push({
+        id: `lead-${lead.id}-declined`,
+        type: 'admin',
+        user: lead.name || 'Lead',
+        action: `Application closed / declined`,
+        time: dateStr,
+        category: 'NPA / Risk',
         avatar: initials,
       });
     }
   });
 
-  // Sort events by date (newest first)
   return events.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 15);
 };
 
@@ -125,14 +66,14 @@ const buildDailyActiveData = (leads: Lead[]) => {
     if (diffDays <= 6) {
       const dayName = days[created.getDay()];
       counts[dayName].users += 1;
-      if (lead.status === 'Trial') counts[dayName].newUsers += 1;
+      if (lead.status === 'APPLICATION_CREATED' || lead.status === 'NEW') counts[dayName].newUsers += 1;
     }
   });
 
   return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => ({
     day,
-    users: counts[day].users || 1, // Fallback to 1 for visual rendering if empty
-    sessions: (counts[day].users || 1) * 2,
+    users: counts[day].users,
+    sessions: counts[day].users,
     newUsers: counts[day].newUsers,
   }));
 };
@@ -164,18 +105,25 @@ const ActivityTab: React.FC<ActivityTabProps> = ({ leads, stats, darkMode }) => 
     { label: 'NPA Accounts (90+ DPD)', value: String(npaCount), color: npaCount > 0 ? 'text-rose-500 font-extrabold animate-pulse' : 'text-gray-500' },
   ];
 
-  // Dummy peak hours data matching loan operations (e.g. branch walk-in peak at 11am-2pm)
-  const peakHoursData = [
-    { hour: '9am', users: 5 },
-    { hour: '10am', users: 18 },
-    { hour: '11am', users: 35 },
-    { hour: '12pm', users: 48 },
-    { hour: '1pm', users: 28 },
-    { hour: '2pm', users: 32 },
-    { hour: '3pm', users: 44 },
-    { hour: '4pm', users: 20 },
-    { hour: '5pm', users: 8 },
-  ];
+  // Peak appraisal hours derived from database lead creation hours
+  const hourBuckets = ['9am', '10am', '11am', '12pm', '1pm', '2pm', '3pm', '4pm', '5pm'];
+  const hourCountsMap: Record<string, number> = {};
+  hourBuckets.forEach(h => { hourCountsMap[h] = 0; });
+  leads.forEach(l => {
+    const hr = new Date(l.created_at).getHours();
+    let b = '12pm';
+    if (hr >= 9 && hr < 10) b = '9am';
+    else if (hr >= 10 && hr < 11) b = '10am';
+    else if (hr >= 11 && hr < 12) b = '11am';
+    else if (hr >= 12 && hr < 13) b = '12pm';
+    else if (hr >= 13 && hr < 14) b = '1pm';
+    else if (hr >= 14 && hr < 15) b = '2pm';
+    else if (hr >= 15 && hr < 16) b = '3pm';
+    else if (hr >= 16 && hr < 17) b = '4pm';
+    else if (hr >= 17) b = '5pm';
+    hourCountsMap[b] += 1;
+  });
+  const peakHoursData = hourBuckets.map(hour => ({ hour, users: hourCountsMap[hour] || 0 }));
 
   return (
     <div className="space-y-6">

@@ -132,7 +132,7 @@ export const useLeadsData = (): UseLeadsDataReturn => {
     }
     setError(null);
 
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
     const apiKey = import.meta.env.VITE_DASHBOARD_API_KEY || '';
 
     try {
@@ -198,17 +198,8 @@ export const useLeadsData = (): UseLeadsDataReturn => {
       setTotalCount(apiTotalCount || enriched.length);
       setLastSync(new Date());
     } catch (err: any) {
-      console.warn('[LeadsData] Backend unavailable, using demo data:', err.message);
-      setError(`${err.message} — showing demo data`);
-
-      setLeads((prev) => {
-        if (prev.length === 0) {
-          const fallback = generateFallbackLeads(35);
-          setTotalCount(fallback.length);
-          return fallback;
-        }
-        return prev;
-      });
+      console.error('[LeadsData] Failed to fetch leads from Django backend:', err.message);
+      setError(`Failed to fetch live data: ${err.message}`);
       setLastSync(new Date());
     } finally {
       setLoading(false);
@@ -232,40 +223,3 @@ export const useLeadsData = (): UseLeadsDataReturn => {
   return { leads, loading, isPolling, error, totalCount, refetch: () => fetchLeads(false), lastSync };
 };
 
-function generateFallbackLeads(count: number): Lead[] {
-  const names = [
-    'Priya Sharma', 'Arjun Mehta', 'Rohan Verma', 'Sneha Patel', 'Aditya Kumar',
-    'Kavita Nair', 'Vikram Singh', 'Pooja Gupta', 'Rahul Joshi', 'Ananya Reddy',
-    'Karan Malhotra', 'Divya Iyer', 'Suresh Bhat', 'Meera Pillai', 'Rajan Das'
-  ];
-  const orgs = [
-    'TechCorp Solutions', 'Finova Capital', 'DataSync Inc.', 'NovaTech Labs', 'InnoVerse Pvt',
-    'Apex Fintech', 'BrightPath Analytics', 'Quantum Ventures', 'Atlas Systems', 'Nexus Digital'
-  ];
-  const plans = ['Starter', 'Pro', 'Business', 'Enterprise'];
-  const industries = ['Fintech', 'Healthcare', 'E-Commerce', 'EdTech', 'SaaS', 'Manufacturing', 'Logistics'];
-  const statuses = ['Active', 'Active', 'Trial', 'At Risk', 'Churned'];
-  const cities = ['Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'Pune'];
-  const regions = ['West', 'North', 'South', 'South', 'South', 'West'];
-
-  return Array.from({ length: count }, (_, idx) => ({
-    id: idx + 1,
-    name: names[idx % names.length],
-    email: `${names[idx % names.length].toLowerCase().replace(' ', '.')}@example.com`,
-    phone: `+91 98765 43${10 + (idx % 90)}`,
-    organization: orgs[idx % orgs.length],
-    industry: industries[idx % industries.length],
-    plan: plans[idx % plans.length],
-    status: statuses[idx % statuses.length],
-    created_at: new Date(Date.now() - (idx * 24 * 3600 * 1000)).toISOString(),
-    region: regions[idx % regions.length],
-    city: cities[idx % cities.length],
-    ai_requests: Math.floor(Math.random() * 4000) + 300,
-    health_score: Math.floor(Math.random() * 40) + 60,
-    revenue: Math.floor(Math.random() * 30000) + 10000,
-    users: Math.floor(Math.random() * 100) + 10,
-    projects: Math.floor(Math.random() * 15) + 2,
-    storage: Math.floor(Math.random() * 50) + 5,
-    last_active: new Date(Date.now() - (idx * 12 * 3600 * 1000)).toISOString(),
-  }));
-}

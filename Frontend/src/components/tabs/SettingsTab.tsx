@@ -7,7 +7,7 @@ interface SettingsTabProps {
 }
 
 const SettingsTab: React.FC<SettingsTabProps> = ({ darkMode, toggleDark }) => {
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
   const [apiKey, setApiKey] = useState(import.meta.env.VITE_DASHBOARD_API_KEY || '');
   const [notifications, setNotifications] = useState({ email: true, slack: false, weekly: true, alerts: true });
   const [dataRefresh, setDataRefresh] = useState('5');

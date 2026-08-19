@@ -43,13 +43,13 @@ const UsersTab: React.FC<UsersTabProps> = ({ leads, stats, darkMode, loading }) 
   leads.forEach(lead => {
     const d = new Date(lead.created_at);
     const dayName = days[d.getDay()];
-    dailyCounts[dayName].users += lead.users || 1;
+    dailyCounts[dayName].users += 1;
     if (lead.status === 'APPLICATION_CREATED' || lead.status === 'ACTIVE') dailyCounts[dayName].newUsers += 1;
   });
   const liveDailyActiveData = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => ({
     day,
-    users: dailyCounts[day].users || Math.floor(Math.random() * 10) + 1, // fallback so chart isn't empty
-    sessions: (dailyCounts[day].users || 2) * 1.5,
+    users: dailyCounts[day].users || 0,
+    sessions: dailyCounts[day].users || 0,
     newUsers: dailyCounts[day].newUsers
   }));
 
@@ -69,24 +69,24 @@ const UsersTab: React.FC<UsersTabProps> = ({ leads, stats, darkMode, loading }) 
     else if (hour >= 18 && hour < 20) bucket = '6pm';
     else if (hour >= 20 && hour < 22) bucket = '8pm';
     else bucket = '10pm';
-    hourCounts[bucket] += (lead.users || 1);
+    hourCounts[bucket] += 1;
   });
   const livePeakHoursData = hours.map(hour => ({
     hour,
-    users: hourCounts[hour] || Math.floor(Math.random() * 20) + 5
+    users: hourCounts[hour] || 0
   }));
 
-  // 3. Top Features (Map from Lead Industries/Products)
+  // 3. Top Features (Mapped to Product Types / Subcategories in DB)
   const features = [
-    { name: 'Dashboard Analytics', color: '#6366f1' },
-    { name: 'Lead Generation', color: '#8b5cf6' },
-    { name: 'Loan Processing', color: '#3b82f6' },
-    { name: 'Document Vault', color: '#10b981' },
-    { name: 'Partner APIs', color: '#f59e0b' },
+    { name: 'Gold Loan Processing', color: '#6366f1' },
+    { name: 'Business / SME Loan', color: '#8b5cf6' },
+    { name: 'Home Loan / LAP', color: '#3b82f6' },
+    { name: 'Personal Loan', color: '#10b981' },
+    { name: 'Digital Sourcing', color: '#f59e0b' },
   ];
-  const liveTopFeaturesData = features.map((f, i) => ({
+  const liveTopFeaturesData = features.map((f) => ({
     feature: f.name,
-    usage: leads.reduce((sum, lead) => sum + (lead.ai_requests || 0) % (10 - i), 0) + (1000 - i * 150),
+    usage: leads.filter(l => (l.product_subcategory || '').toLowerCase().includes(f.name.toLowerCase().split(' ')[0])).length,
     color: f.color
   }));
 
@@ -95,31 +95,31 @@ const UsersTab: React.FC<UsersTabProps> = ({ leads, stats, darkMode, loading }) 
   const liveMonthlyData = monthlyTrend.length > 0
     ? monthlyTrend.map((m: any) => ({
         month: m.month,
-        mau: Number(m.count) * 10, // Mocking MAU based on app counts
-        revenue: Number(m.amount) * 1000,
-        newOrgs: Number(m.count)
+        mau: Number(m.count) || 0,
+        revenue: 0,
+        newOrgs: Number(m.count) || 0
       }))
-    : ['Jan', 'Feb', 'Mar'].map(m => ({ month: m, mau: 0, revenue: 0, newOrgs: 0 }));
+    : [];
 
   // 5. New vs Returning (Classic vs External)
   const leadsMonthly = stats?.leadsStats?.monthly_trend || [];
   const liveNewVsReturningData = leadsMonthly.length > 0 
     ? leadsMonthly.map((item: any) => ({
         month: item.month,
-        new: Math.round(Number(item.count) * 0.4),
-        returning: Math.round(Number(item.count) * 0.6)
+        new: externalLeads,
+        returning: classicLeads
       }))
     : [{ month: 'Current', new: externalLeads, returning: classicLeads }];
 
-  // 6. Retention Data (Simple curve based on active percentage)
-  const activePct = totalLeads > 0 ? Math.round((stats?.loansStats?.active_loans || totalLeads) / totalLeads * 100) : 100;
+  // 6. Retention Data (Active loan retention rate across portfolio)
+  const activePct = totalLeads > 0 ? Math.round((stats?.loansStats?.active_loans || 0) / totalLeads * 100) : 0;
   const liveRetentionData = [
-    { week: 'W1', rate: 100 },
-    { week: 'W2', rate: Math.max(activePct + 10, 80) },
-    { week: 'W3', rate: Math.max(activePct + 5, 75) },
-    { week: 'W4', rate: Math.max(activePct, 70) },
-    { week: 'W5', rate: Math.max(activePct - 2, 65) },
-    { week: 'W6', rate: Math.max(activePct - 5, 60) },
+    { week: 'W1', rate: activePct > 0 ? 100 : 0 },
+    { week: 'W2', rate: activePct },
+    { week: 'W3', rate: activePct },
+    { week: 'W4', rate: activePct },
+    { week: 'W5', rate: activePct },
+    { week: 'W6', rate: activePct },
   ];
 
   return (
