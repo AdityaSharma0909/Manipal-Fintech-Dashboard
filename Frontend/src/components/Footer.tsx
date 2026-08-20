@@ -25,12 +25,12 @@ const Footer: React.FC<FooterProps> = ({ darkMode, lastSync }) => {
         </div>
       </div>
       <div className="flex items-center gap-4">
-        <span>Manipal Fintech Analytics v2.4.1</span>
-        <a href="#" className="hover:text-indigo-500 transition-colors flex items-center gap-1">
+        <span>Manipal Fintech Executive Analytics</span>
+        <span className="flex items-center gap-1 text-emerald-500 font-semibold">
           <HelpCircle size={11} />
-          Support
-        </a>
-        <span>© 2026 Manipal Fintech</span>
+          Help & Docs
+        </span>
+        <span>© {new Date().getFullYear()} Manipal Fintech</span>
       </div>
     </footer>
   );

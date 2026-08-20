@@ -1,5 +1,5 @@
-import { axiosInstance } from "./client";
 import type { GlobalFilters } from "./client";
+import { fetchLoans } from "./dashboardClient";
 import type { LoansData } from "./dashboardClient";
 
 export const getLoans = async (filters: GlobalFilters): Promise<LoansData> => {
@@ -7,7 +7,7 @@ export const getLoans = async (filters: GlobalFilters): Promise<LoansData> => {
   if (filters.fromDate) params.from_date = filters.fromDate;
   if (filters.toDate) params.to_date = filters.toDate;
   if (filters.branchId) params.branch_id = filters.branchId;
+  if (filters.loanStatus) params.status = filters.loanStatus;
 
-  const response = await axiosInstance.get<LoansData>("/dashboard/loans/", { params });
-  return response.data;
+  return fetchLoans(params);
 };

@@ -93,7 +93,7 @@ export const ErrorState: React.FC<{ message: string }> = ({ message }) => (
     <span>
       {message}{" "}
       <strong>
-        Make sure the Django server is running and DASHBOARD_API_KEY is set.
+        Ensure the API server is reachable and VITE_BEARER_TOKEN is configured in .env.
       </strong>
     </span>
   </div>

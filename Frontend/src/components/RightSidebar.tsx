@@ -58,7 +58,8 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ darkMode, lastSync, pinnedC
   return (
     <aside className={`w-60 flex-shrink-0 border-l ${darkMode ? 'border-gray-700 bg-gray-900/50' : 'border-gray-100 bg-white/50'} backdrop-blur-sm overflow-y-auto`}>
       <div className="p-4 space-y-5">
-        {/* Quick Actions */}
+        {/* Quick Actions - Temporarily disabled */}
+        {/*
         <div>
           <h4 className={`text-xs font-semibold uppercase tracking-wider mb-3 ${darkMode ? 'text-gray-400' : 'text-gray-400'}`}>Quick Actions</h4>
           <div className="space-y-1">
@@ -78,8 +79,10 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ darkMode, lastSync, pinnedC
         </div>
 
         <div className={`h-px ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`} />
+        */}
 
-        {/* Pinned Customers */}
+        {/* Pinned Customers - Temporarily disabled */}
+        {/*
         <div>
           <h4 className={`text-xs font-semibold uppercase tracking-wider mb-3 ${darkMode ? 'text-gray-400' : 'text-gray-400'}`}>Pinned Customers</h4>
           <div className="space-y-2">
@@ -108,8 +111,10 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ darkMode, lastSync, pinnedC
         </div>
 
         <div className={`h-px ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`} />
+        */}
 
-        {/* Saved Views */}
+        {/* Saved Views - Temporarily disabled */}
+        {/*
         <div>
           <h4 className={`text-xs font-semibold uppercase tracking-wider mb-3 ${darkMode ? 'text-gray-400' : 'text-gray-400'}`}>Saved Views</h4>
           <div className="space-y-1">
@@ -138,6 +143,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ darkMode, lastSync, pinnedC
         </div>
 
         <div className={`h-px ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`} />
+        */}
 
         {/* Data Freshness */}
         <div>

@@ -1,250 +1,268 @@
-import React from 'react';
-import {
-  ChartCard, DailyActiveChart, MonthlyChart, RetentionChart,
-  PeakHoursChart, NewVsReturningChart, TopFeaturesChart, LoanTypeChart, ApplicationStatusChart,
-} from '../Charts';
-import LeadsTable from '../LeadsTable';
-import TeamPerformanceSection from '../TeamPerformanceSection';
-import { Lead } from '../../types';
+import React, { useState } from 'react';
+import { Employee, ComprehensiveDashboardStats } from '../../types';
+import { Users, UserCheck, ShieldCheck, Building2, TrendingUp, Search, Award, Info } from 'lucide-react';
+import KPICard from '../KPICard';
 
 interface UsersTabProps {
-  leads: Lead[];
-  stats: any;
+  employees?: Employee[];
+  stats: ComprehensiveDashboardStats | null;
   darkMode: boolean;
   loading: boolean;
 }
 
-// Helper to get start of day
-const getStartOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
+const UsersTab: React.FC<UsersTabProps> = ({ employees = [], stats, darkMode, loading }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState('ALL');
 
-const UsersTab: React.FC<UsersTabProps> = ({ leads, stats, darkMode, loading }) => {
-  // Derive real counts from backend stats
-  const totalLeads = stats?.leadsStats?.combined_total ?? leads.length;
-  const classicLeads = stats?.leadsStats?.classic_leads?.total ?? 0;
-  const externalLeads = stats?.leadsStats?.external_leads?.total ?? 0;
-  const conversionRate = stats?.leadsStats?.external_leads?.conversion_rate_pct ?? 0;
+  const empStats = stats?.employeesStats;
+  const employeeList = stats?.employeesList && stats.employeesList.length > 0 ? stats.employeesList : employees;
 
-  const userStats = [
-    { label: 'Combined Leads', value: totalLeads.toLocaleString('en-IN'), color: '#0076eb', sub: 'All sourced leads' },
-    { label: 'Classic Leads', value: classicLeads.toLocaleString('en-IN'), color: '#e5b83b', sub: 'Internal platform' },
-    { label: 'External Leads', value: externalLeads.toLocaleString('en-IN'), color: '#3b82f6', sub: 'Fincome / Manipal' },
-    { label: 'Conversion Rate', value: `${conversionRate}%`, color: '#10b981', sub: 'Disbursed / Total' },
-  ];
+  const filteredEmployees = employeeList.filter((emp) => {
+    const name = `${emp.first_name || ''} ${emp.last_name || ''}`.toLowerCase();
+    const matchesSearch =
+      name.includes(searchTerm.toLowerCase()) ||
+      (emp.username || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (emp.employee_id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (emp.phone || '').includes(searchTerm);
 
-  const byStatus = stats?.leadsStats?.classic_leads?.by_status ?? [];
-  const bySource = stats?.leadsStats?.classic_leads?.by_source ?? [];
+    const matchesRole = roleFilter === 'ALL' || emp.role === roleFilter;
 
-  // --- Dynamic Chart Data Generation from Live Leads --- //
-  
-  // 1. Daily Active (by day of week)
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const dailyCounts: Record<string, { users: number; newUsers: number }> = {};
-  days.forEach(d => { dailyCounts[d] = { users: 0, newUsers: 0 }; });
-  leads.forEach(lead => {
-    const d = new Date(lead.created_at);
-    const dayName = days[d.getDay()];
-    dailyCounts[dayName].users += 1;
-    if (lead.status === 'APPLICATION_CREATED' || lead.status === 'ACTIVE') dailyCounts[dayName].newUsers += 1;
+    return matchesSearch && matchesRole;
   });
-  const liveDailyActiveData = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => ({
-    day,
-    users: dailyCounts[day].users || 0,
-    sessions: dailyCounts[day].users || 0,
-    newUsers: dailyCounts[day].newUsers
-  }));
 
-  // 2. Peak Hours
-  const hours = ['6am', '8am', '10am', '12pm', '2pm', '4pm', '6pm', '8pm', '10pm'];
-  const hourCounts: Record<string, number> = {};
-  hours.forEach(h => { hourCounts[h] = 0; });
-  leads.forEach(lead => {
-    const hour = new Date(lead.created_at).getHours();
-    let bucket = '12pm';
-    if (hour >= 6 && hour < 8) bucket = '6am';
-    else if (hour >= 8 && hour < 10) bucket = '8am';
-    else if (hour >= 10 && hour < 12) bucket = '10am';
-    else if (hour >= 12 && hour < 14) bucket = '12pm';
-    else if (hour >= 14 && hour < 16) bucket = '2pm';
-    else if (hour >= 16 && hour < 18) bucket = '4pm';
-    else if (hour >= 18 && hour < 20) bucket = '6pm';
-    else if (hour >= 20 && hour < 22) bucket = '8pm';
-    else bucket = '10pm';
-    hourCounts[bucket] += 1;
-  });
-  const livePeakHoursData = hours.map(hour => ({
-    hour,
-    users: hourCounts[hour] || 0
-  }));
-
-  // 3. Top Features (Mapped to Product Types / Subcategories in DB)
-  const features = [
-    { name: 'Gold Loan Processing', color: '#6366f1' },
-    { name: 'Business / SME Loan', color: '#8b5cf6' },
-    { name: 'Home Loan / LAP', color: '#3b82f6' },
-    { name: 'Personal Loan', color: '#10b981' },
-    { name: 'Digital Sourcing', color: '#f59e0b' },
-  ];
-  const liveTopFeaturesData = features.map((f) => ({
-    feature: f.name,
-    usage: leads.filter(l => (l.product_subcategory || '').toLowerCase().includes(f.name.toLowerCase().split(' ')[0])).length,
-    color: f.color
-  }));
-
-  // 4. Monthly Trend
-  const monthlyTrend = stats?.applicationsStats?.monthly_trend || [];
-  const liveMonthlyData = monthlyTrend.length > 0
-    ? monthlyTrend.map((m: any) => ({
-        month: m.month,
-        mau: Number(m.count) || 0,
-        revenue: 0,
-        newOrgs: Number(m.count) || 0
-      }))
-    : [];
-
-  // 5. New vs Returning (Classic vs External)
-  const leadsMonthly = stats?.leadsStats?.monthly_trend || [];
-  const liveNewVsReturningData = leadsMonthly.length > 0 
-    ? leadsMonthly.map((item: any) => ({
-        month: item.month,
-        new: externalLeads,
-        returning: classicLeads
-      }))
-    : [{ month: 'Current', new: externalLeads, returning: classicLeads }];
-
-  // 6. Retention Data (Active loan retention rate across portfolio)
-  const activePct = totalLeads > 0 ? Math.round((stats?.loansStats?.active_loans || 0) / totalLeads * 100) : 0;
-  const liveRetentionData = [
-    { week: 'W1', rate: activePct > 0 ? 100 : 0 },
-    { week: 'W2', rate: activePct },
-    { week: 'W3', rate: activePct },
-    { week: 'W4', rate: activePct },
-    { week: 'W5', rate: activePct },
-    { week: 'W6', rate: activePct },
-  ];
+  const totalEmployees = empStats?.total || employeeList.length;
+  const activeEmployees = empStats?.active || employeeList.filter((e) => e.is_active).length;
+  const salesOfficersCount = empStats?.salesOfficersCount || 0;
+  const branchManagersCount = empStats?.branchManagersCount || 0;
 
   return (
     <div className="space-y-6">
-      {/* User Stats — Real Backend Data */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {userStats.map(stat => (
-          <div key={stat.label} className={`rounded-2xl border p-5 ${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white border-gray-100'}`}>
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-2 h-2 rounded-full" style={{ background: stat.color }} />
-              <p className={`text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{stat.label}</p>
-            </div>
-            <p className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{stat.value}</p>
-            <p className={`text-xs mt-1 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{stat.sub}</p>
-          </div>
-        ))}
+      {/* ── Top Employee KPIs with Data Source Attribution ──────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KPICard
+          title="Total Staff / Employees"
+          value={totalEmployees}
+          description="Registered employees in workforce"
+          icon="Users"
+          color="blue"
+          apiEndpoint="/user/employee"
+          darkMode={darkMode}
+        />
+        <KPICard
+          title="Active Employees"
+          value={activeEmployees}
+          description={`${totalEmployees - activeEmployees} inactive staff members`}
+          icon="UserCheck"
+          color="emerald"
+          apiEndpoint="/user/employee"
+          darkMode={darkMode}
+        />
+        <KPICard
+          title="Sales Officers (SO)"
+          value={salesOfficersCount}
+          description="Field sales & origination officers"
+          icon="Award"
+          color="indigo"
+          apiEndpoint="/user/by_role/ (or /user/employee)"
+          darkMode={darkMode}
+        />
+        <KPICard
+          title="Managers & Regional Heads"
+          value={branchManagersCount}
+          description="Branch & regional head leadership"
+          icon="ShieldCheck"
+          color="purple"
+          apiEndpoint="/user/by_role/ (or /user/employee)"
+          darkMode={darkMode}
+        />
       </div>
 
-      {/* Team Performance Section */}
-      <TeamPerformanceSection teamStats={stats?.teamStats} darkMode={darkMode} />
-
-      {/* Lead Status & Source Breakdown */}
-      {(byStatus.length > 0 || bySource.length > 0) && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {byStatus.length > 0 && (
-            <div className={`rounded-2xl border p-5 ${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white border-gray-100'}`}>
-              <h4 className={`text-sm font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Lead Status Distribution</h4>
-              <div className="space-y-2.5">
-                {byStatus.slice(0, 8).map((item: any, i: number) => {
-                  const total = byStatus.reduce((s: number, d: any) => s + (d.count || 0), 0);
-                  const pct = total > 0 ? Math.round((item.count / total) * 100) : 0;
-                  const colors = ['#0076eb','#e5b83b','#3b82f6','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899'];
-                  return (
-                    <div key={i}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className={`text-xs font-medium truncate max-w-[60%] ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                          {item.status?.replace(/_/g, ' ') || 'Unknown'}
-                        </span>
-                        <span className={`text-xs font-bold ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>{item.count} ({pct}%)</span>
-                      </div>
-                      <div className={`h-2 rounded-full ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} overflow-hidden`}>
-                        <div
-                          className="h-full rounded-full transition-all duration-700"
-                          style={{ width: `${pct}%`, background: colors[i % colors.length] }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
+      {/* ── Role & Branch Distribution Grid ──────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Role Breakdown */}
+        <div className={`p-5 rounded-2xl border flex flex-col justify-between ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'} shadow-sm`}>
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className={`text-sm font-bold flex items-center gap-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                <ShieldCheck size={16} className="text-purple-500" />
+                Role Hierarchy Distribution
+              </h3>
+              <div className="relative group/tooltip">
+                <Info size={14} className={`${darkMode ? 'text-gray-500 group-hover/tooltip:text-gray-300' : 'text-gray-400 group-hover/tooltip:text-gray-600'} transition-colors cursor-pointer`} />
+                <div className={`absolute right-0 top-full mt-1.5 hidden group-hover/tooltip:flex flex-col whitespace-nowrap z-50 px-2.5 py-1 rounded-lg text-[10px] font-mono shadow-xl border pointer-events-none ${
+                  darkMode ? 'bg-gray-800 border-gray-700 text-gray-200' : 'bg-gray-900 border-gray-800 text-white'
+                }`}>
+                  <span className="text-[9px] text-gray-400 font-sans uppercase font-bold tracking-wider">Data Source</span>
+                  <span>/user/by_role/ & /user/employee</span>
+                </div>
               </div>
             </div>
-          )}
-
-          {bySource.length > 0 && (
-            <div className={`rounded-2xl border p-5 ${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white border-gray-100'}`}>
-              <h4 className={`text-sm font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Lead Source Breakdown</h4>
-              <div className="space-y-2.5">
-                {bySource.slice(0, 8).map((item: any, i: number) => {
-                  const total = bySource.reduce((s: number, d: any) => s + (d.count || 0), 0);
-                  const pct = total > 0 ? Math.round((item.count / total) * 100) : 0;
-                  const colors = ['#10b981','#0076eb','#e5b83b','#3b82f6','#8b5cf6','#ef4444','#06b6d4','#ec4899'];
-                  return (
-                    <div key={i}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className={`text-xs font-medium truncate max-w-[60%] ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                          {item.source || 'Unknown'}
-                        </span>
-                        <span className={`text-xs font-bold ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>{item.count} ({pct}%)</span>
-                      </div>
-                      <div className={`h-2 rounded-full ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} overflow-hidden`}>
-                        <div
-                          className="h-full rounded-full transition-all duration-700"
-                          style={{ width: `${pct}%`, background: colors[i % colors.length] }}
-                        />
-                      </div>
+            <div className="space-y-3">
+              {(empStats?.byRole || []).map((r) => {
+                const pct = totalEmployees > 0 ? Math.round((r.count / totalEmployees) * 100) : 0;
+                return (
+                  <div key={r.role} className="space-y-1">
+                    <div className="flex justify-between text-xs font-semibold">
+                      <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>{r.role}</span>
+                      <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}>
+                        {r.count} staff ({pct}%)
+                      </span>
                     </div>
-                  );
-                })}
+                    <div className={`h-2 rounded-full overflow-hidden ${darkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
+                      <div className="h-full bg-purple-500" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Branch Allocation */}
+        <div className={`p-5 rounded-2xl border flex flex-col justify-between ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'} shadow-sm`}>
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className={`text-sm font-bold flex items-center gap-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                <Building2 size={16} className="text-blue-500" />
+                Branch Staff Allocation
+              </h3>
+              <div className="relative group/tooltip">
+                <Info size={14} className={`${darkMode ? 'text-gray-500 group-hover/tooltip:text-gray-300' : 'text-gray-400 group-hover/tooltip:text-gray-600'} transition-colors cursor-pointer`} />
+                <div className={`absolute right-0 top-full mt-1.5 hidden group-hover/tooltip:flex flex-col whitespace-nowrap z-50 px-2.5 py-1 rounded-lg text-[10px] font-mono shadow-xl border pointer-events-none ${
+                  darkMode ? 'bg-gray-800 border-gray-700 text-gray-200' : 'bg-gray-900 border-gray-800 text-white'
+                }`}>
+                  <span className="text-[9px] text-gray-400 font-sans uppercase font-bold tracking-wider">Data Source</span>
+                  <span>/user/employee</span>
+                </div>
               </div>
             </div>
-          )}
-        </div>
-      )}
-
-      {/* Application Status + Loan Type from Backend */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ChartCard title="Application Pipeline Status" subtitle="By processing stage" darkMode={darkMode}>
-          <ApplicationStatusChart data={stats?.applicationsStats?.by_status || []} darkMode={darkMode} />
-        </ChartCard>
-        <ChartCard title="External Lead Loan Types" subtitle="From Fincome & Manipal sourcing" darkMode={darkMode}>
-          <div className="pt-2">
-            <LoanTypeChart data={stats?.leadsStats?.external_leads?.by_loan_type || []} darkMode={darkMode} />
+            <div className="grid grid-cols-2 gap-3 max-h-48 overflow-y-auto pr-1">
+              {(empStats?.byBranch || []).map((b) => (
+                <div key={b.branch} className={`flex items-center justify-between p-2.5 rounded-lg border text-xs ${
+                  darkMode ? 'bg-gray-800/30 border-gray-700 text-gray-300' : 'bg-gray-50 border-gray-200 text-gray-700'
+                }`}>
+                  <span className="font-semibold truncate max-w-[120px]">{b.branch}</span>
+                  <span className="font-bold px-2 py-0.5 rounded bg-brand-blue/10 text-brand-blue">{b.count}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </ChartCard>
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ChartCard title="Daily Active Users" subtitle="Current week breakdown" darkMode={darkMode}>
-          <DailyActiveChart data={liveDailyActiveData} darkMode={darkMode} />
-        </ChartCard>
-        <ChartCard title="Monthly Active Users" subtitle="Historical engagement trend" darkMode={darkMode}>
-          <MonthlyChart data={liveMonthlyData} darkMode={darkMode} />
-        </ChartCard>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <ChartCard title="Retention Cohort" subtitle="User survival curve" darkMode={darkMode}>
-          <RetentionChart data={liveRetentionData} darkMode={darkMode} />
-        </ChartCard>
-        <ChartCard title="Peak Usage Hours" subtitle="Active users by time of day" darkMode={darkMode}>
-          <PeakHoursChart data={livePeakHoursData} darkMode={darkMode} />
-        </ChartCard>
-        <ChartCard title="New vs Returning" subtitle="User acquisition vs engagement" darkMode={darkMode}>
-          <NewVsReturningChart data={liveNewVsReturningData} darkMode={darkMode} />
-        </ChartCard>
-      </div>
-
-      <ChartCard title="Top Features Used" subtitle="By user interaction count" darkMode={darkMode}>
-        <div className="pt-2">
-          <TopFeaturesChart data={liveTopFeaturesData} darkMode={darkMode} />
         </div>
-      </ChartCard>
+      </div>
 
-      <LeadsTable leads={leads} darkMode={darkMode} loading={loading} />
+      {/* ── Employee Performance Roster Table ────────────────────────── */}
+      <div className={`p-5 rounded-2xl border ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'} shadow-sm`}>
+        <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className={`text-base font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Employee Roster & Conversions</h3>
+              <div className="relative group/tooltip">
+                <Info size={14} className={`${darkMode ? 'text-gray-500 group-hover/tooltip:text-gray-300' : 'text-gray-400 group-hover/tooltip:text-gray-600'} transition-colors cursor-pointer`} />
+                <div className={`absolute left-0 top-full mt-1.5 hidden group-hover/tooltip:flex flex-col whitespace-nowrap z-50 px-2.5 py-1 rounded-lg text-[10px] font-mono shadow-xl border pointer-events-none ${
+                  darkMode ? 'bg-gray-800 border-gray-700 text-gray-200' : 'bg-gray-900 border-gray-800 text-white'
+                }`}>
+                  <span className="text-[9px] text-gray-400 font-sans uppercase font-bold tracking-wider">Data Source</span>
+                  <span>/user/employee & /user/employee/applications</span>
+                </div>
+              </div>
+            </div>
+            <p className={`text-xs mt-0.5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              Showing {filteredEmployees.length} of {totalEmployees} employee records
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 flex-wrap">
+            <input
+              type="text"
+              placeholder="Search employee, username, phone..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={`px-3 py-1.5 rounded-xl border text-xs font-medium focus:outline-none ${
+                darkMode ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500' : 'bg-white border-gray-300 text-gray-900'
+              }`}
+            />
+            <select
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              className={`px-3 py-1.5 rounded-xl border text-xs font-medium focus:outline-none ${
+                darkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-300 text-gray-900'
+              }`}
+            >
+              <option value="ALL">All Roles</option>
+              <option value="SALES_OFFICER">SALES_OFFICER</option>
+              <option value="BRANCH_MANAGER">BRANCH_MANAGER</option>
+              <option value="REGIONAL_HEAD">REGIONAL_HEAD</option>
+              <option value="CREDIT_OFFICER">CREDIT_OFFICER</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className={`border-b text-[11px] font-semibold uppercase tracking-wider ${darkMode ? 'border-gray-800 text-gray-400' : 'border-gray-200 text-gray-500'}`}>
+                <th className="py-3 px-3">Employee Name</th>
+                <th className="py-3 px-3">Role</th>
+                <th className="py-3 px-3">Branch</th>
+                <th className="py-3 px-3">Contact</th>
+                <th className="py-3 px-3">Leads Handled</th>
+                <th className="py-3 px-3">Apps Handled</th>
+                <th className="py-3 px-3">Disbursed Apps</th>
+                <th className="py-3 px-3">Conversion Rate</th>
+                <th className="py-3 px-3">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y text-xs font-medium">
+              {filteredEmployees.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="py-8 text-center text-gray-500">
+                    No employees matching filters found.
+                  </td>
+                </tr>
+              ) : (
+                filteredEmployees.map((emp) => {
+                  const name = `${emp.first_name || ''} ${emp.last_name || ''}`.trim() || emp.username;
+                  const leadsHandled = (emp as any).leadsHandled || 0;
+                  const appsHandled = (emp as any).appsHandled || 0;
+                  const disbursedApps = (emp as any).disbursedApps || 0;
+                  const convRate = (emp as any).conversionRate || 0;
+
+                  return (
+                    <tr key={emp.user_id} className={`hover:bg-brand-blue/5 transition-colors ${darkMode ? 'border-gray-800 text-gray-300' : 'border-gray-100 text-gray-800'}`}>
+                      <td className="py-3 px-3">
+                        <div className="font-bold text-brand-blue">{name}</div>
+                        <div className="text-[10px] text-gray-500">Code: {emp.employee_id || emp.username}</div>
+                      </td>
+                      <td className="py-3 px-3">
+                        <span className="px-2 py-0.5 rounded bg-purple-500/10 text-purple-600 font-bold text-[10px]">
+                          {emp.role}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3">{emp.branch_name || 'Main Branch'}</td>
+                      <td className="py-3 px-3 font-mono">{emp.phone || 'N/A'}</td>
+                      <td className="py-3 px-3 font-bold text-blue-600">{leadsHandled}</td>
+                      <td className="py-3 px-3 font-bold text-purple-600">{appsHandled}</td>
+                      <td className="py-3 px-3 font-bold text-emerald-600">{disbursedApps}</td>
+                      <td className="py-3 px-3">
+                        <div className="flex items-center gap-1 font-bold text-emerald-600">
+                          <TrendingUp size={12} /> {convRate}%
+                        </div>
+                      </td>
+                      <td className="py-3 px-3">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          emp.is_active !== false ? 'bg-emerald-500/10 text-emerald-600' : 'bg-gray-500/10 text-gray-500'
+                        }`}>
+                          {emp.is_active !== false ? 'ACTIVE' : 'INACTIVE'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 };

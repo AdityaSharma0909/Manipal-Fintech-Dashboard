@@ -161,7 +161,8 @@ const CustomerInsightsTab: React.FC<CustomerInsightsTabProps> = ({ leads, stats,
         </div>
       </div>
 
-      <LeadsTable leads={leads} darkMode={darkMode} loading={loading} />
+      <LeadsTable leads={leads} applications={stats?.applicationsList || []} darkMode={darkMode} loading={loading} />
+
     </div>
   );
 };

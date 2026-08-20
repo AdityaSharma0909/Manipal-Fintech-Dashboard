@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Bell, Search, ChevronDown, Plus, Calendar, Globe, X, Moon, Sun } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Bell, Search, ChevronDown, Plus, Calendar, Globe, X, Moon, Sun, RefreshCw, Download, AlertTriangle, FileText } from 'lucide-react';
 
 interface HeaderProps {
   darkMode: boolean;
@@ -13,17 +13,55 @@ interface HeaderProps {
   setCustomToDate: (date: string) => void;
   isPolling?: boolean;
   lastSync?: Date | null;
+  error?: string | null;
+  onRefresh?: () => void;
+  onExport?: () => void;
+  onExportPDF?: () => void;
 }
+
+const useRelativeTime = (lastSync?: Date | null) => {
+  const [relTime, setRelTime] = useState<string>('Just now');
+
+  useEffect(() => {
+    if (!lastSync) {
+      setRelTime('Just now');
+      return;
+    }
+
+    const update = () => {
+      const diffMs = Date.now() - lastSync.getTime();
+      const secs = Math.max(0, Math.floor(diffMs / 1000));
+      if (secs < 10) {
+        setRelTime('Just now');
+      } else if (secs < 60) {
+        setRelTime(`${secs}s ago`);
+      } else {
+        const mins = Math.floor(secs / 60);
+        setRelTime(`${mins}m ago`);
+      }
+    };
+
+    update();
+    const interval = setInterval(update, 5000);
+    return () => clearInterval(interval);
+  }, [lastSync]);
+
+  return relTime;
+};
+
 
 const Header: React.FC<HeaderProps> = ({
   darkMode, toggleDark, notifications,
   selectedRange, setSelectedRange,
   customFromDate, setCustomFromDate,
   customToDate, setCustomToDate,
-  isPolling, lastSync
+  isPolling, lastSync, error, onRefresh, onExport, onExportPDF
 }) => {
+  const relTime = useRelativeTime(lastSync);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
   const [rangeDropdownOpen, setRangeDropdownOpen] = useState(false);
+
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [orgDropdownOpen, setOrgDropdownOpen] = useState(false);
   const [selectedOrg, setSelectedOrg] = useState('All Organizations');
@@ -92,21 +130,99 @@ const Header: React.FC<HeaderProps> = ({
 
         {/* Right Controls */}
         <div className="flex items-center gap-1.5">
-          {/* Sync Indicator */}
-          <div className={`hidden sm:flex items-center gap-1.5 px-2 mr-2 text-[10px] font-medium tracking-wide ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-            {isPolling ? (
-              <>
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Syncing live...</span>
-              </>
-            ) : (
-              <>
-                <div className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600" />
-                <span>Live</span>
-              </>
+          {/* Feature 1: Enhanced Live Data Pulse Widget */}
+          <div className={`hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold ${
+            error
+              ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400'
+              : darkMode ? 'bg-gray-800/80 border-gray-700 text-gray-300' : 'bg-gray-50 border-gray-200 text-gray-700'
+          }`}>
+            <div className="flex items-center gap-1.5">
+              {isPolling ? (
+                <>
+                  <div className="w-2 h-2 rounded-full bg-blue-500 animate-ping" />
+                  <span className="text-blue-500 font-bold">SYNCING...</span>
+                </>
+              ) : error ? (
+                <>
+                  <div className="w-2 h-2 rounded-full bg-amber-500" />
+                  <span className="font-bold">Connection Issue</span>
+                </>
+              ) : (
+                <>
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">LIVE / CONNECTED</span>
+                </>
+              )}
+            </div>
+            <span className="text-[11px] opacity-70 border-l pl-2 border-gray-300 dark:border-gray-600">
+              Synced {lastSync ? lastSync.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Just now'} ({relTime})
+            </span>
+            {onRefresh && (
+              <button
+                onClick={onRefresh}
+                title="Refresh Live Data"
+                className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 text-brand-blue transition-colors cursor-pointer ml-0.5"
+              >
+                <RefreshCw size={12} className={isPolling ? 'animate-spin' : ''} />
+              </button>
             )}
           </div>
 
+          {/* Feature 4: Export Current View Dropdown */}
+          {(onExport || onExportPDF) && (
+            <div className="relative">
+              <button
+                onClick={() => setExportDropdownOpen(!exportDropdownOpen)}
+                title="Export Current View"
+                className={`hidden md:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                  darkMode
+                    ? 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700 hover:text-white'
+                    : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <Download size={13} className="text-brand-blue" />
+                <span>Export View</span>
+                <ChevronDown size={11} className={darkMode ? 'text-gray-500' : 'text-gray-400'} />
+              </button>
+
+              {exportDropdownOpen && (
+                <div
+                  className={`absolute right-0 top-11 w-48 rounded-xl shadow-2xl border z-50 p-1.5 space-y-1 ${
+                    darkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-100'
+                  }`}
+                >
+                  {onExportPDF && (
+                    <button
+                      onClick={() => {
+                        onExportPDF();
+                        setExportDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg text-left transition-colors cursor-pointer ${
+                        darkMode ? 'text-gray-300 hover:bg-gray-800 hover:text-white' : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <FileText size={14} className="text-rose-500" />
+                      <span>Download PDF (.pdf)</span>
+                    </button>
+                  )}
+                  {onExport && (
+                    <button
+                      onClick={() => {
+                        onExport();
+                        setExportDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg text-left transition-colors cursor-pointer ${
+                        darkMode ? 'text-gray-300 hover:bg-gray-800 hover:text-white' : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Download size={14} className="text-emerald-500" />
+                      <span>Download CSV (.csv)</span>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           <div className="relative">
             <button
               onClick={() => setRangeDropdownOpen(!rangeDropdownOpen)}
@@ -117,6 +233,7 @@ const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <Calendar size={13} />
+
               <span>
                 {selectedRange === 'Custom'
                   ? `${customFromDate} to ${customToDate}`
@@ -213,9 +330,9 @@ const Header: React.FC<HeaderProps> = ({
                   <button onClick={() => setNotifOpen(false)}><X size={14} className="text-gray-400" /></button>
                 </div>
                 {[
-                  { text: 'Enterprise customer health score dropped below 70', time: '5m ago', dot: 'bg-rose-500' },
-                  { text: 'Monthly report for December is ready to download', time: '1h ago', dot: 'bg-indigo-500' },
-                  { text: 'AI usage milestone reached: 2M tokens generated', time: '3h ago', dot: 'bg-emerald-500' },
+                  { text: 'Live API Sync Active: Connected to dev backend', time: 'Active', dot: 'bg-emerald-500' },
+                  { text: 'State Analytics Engine: Real-time branches & leads', time: 'Active', dot: 'bg-blue-500' },
+                  { text: 'TimeStamp Metrics: CHECKED_IN records processed', time: 'Active', dot: 'bg-indigo-500' },
                 ].map((n, i) => (
                   <div key={i} className={`flex gap-3 px-4 py-3 cursor-pointer transition-colors hover:${darkMode ? 'bg-gray-800' : 'bg-gray-50'}`}>
                     <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${n.dot}`} />
@@ -240,12 +357,12 @@ const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <div className="relative w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center text-white font-bold text-xs shadow-sm flex-shrink-0">
-                AD
+                MF
                 <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 border-2 border-white dark:border-gray-900 rounded-full" />
               </div>
               <div className="text-left hidden sm:block leading-tight">
-                <p className="text-xs font-semibold">Aditya (Admin)</p>
-                <p className={`text-[10px] ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Superuser</p>
+                <p className="text-xs font-semibold">Executive</p>
+                <p className={`text-[10px] ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Live Session</p>
               </div>
               <ChevronDown size={12} className={darkMode ? 'text-gray-400' : 'text-gray-500'} />
             </button>
@@ -256,21 +373,21 @@ const Header: React.FC<HeaderProps> = ({
               }`}>
                 <div className="flex items-center gap-3 pb-3 border-b border-dashed mb-3" style={{ borderColor: darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}>
                   <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center text-white font-bold text-sm shadow-md">
-                    AD
+                    MF
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold truncate">Aditya (Admin)</p>
-                    <p className={`text-[11px] truncate ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>admin@manipalfintech.com</p>
+                    <p className="text-xs font-bold truncate">Executive User</p>
+                    <p className={`text-[11px] truncate ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Manipal Fintech Dashboard</p>
                     <span className="inline-block mt-1 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500">
-                      Active Superuser
+                      Active Live Session
                     </span>
                   </div>
                 </div>
 
                 <div className="space-y-1 text-xs">
                   <div className={`px-2.5 py-1.5 rounded-lg flex items-center justify-between ${darkMode ? 'bg-gray-800/60' : 'bg-gray-50'}`}>
-                    <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}>Role</span>
-                    <span className="font-semibold text-brand-blue">System Administrator</span>
+                    <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}>Environment</span>
+                    <span className="font-semibold text-brand-blue">Production / Staging API</span>
                   </div>
                   <div className={`px-2.5 py-1.5 rounded-lg flex items-center justify-between ${darkMode ? 'bg-gray-800/60' : 'bg-gray-50'}`}>
                     <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}>Session Status</span>

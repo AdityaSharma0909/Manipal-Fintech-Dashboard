@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Bell, Shield, Database, Palette, Globe, Link, Save, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
+import { getApiBaseUrl, getAuthToken } from '../../utils/apiAuth';
 
 interface SettingsTabProps {
   darkMode: boolean;
@@ -7,8 +8,8 @@ interface SettingsTabProps {
 }
 
 const SettingsTab: React.FC<SettingsTabProps> = ({ darkMode, toggleDark }) => {
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-  const [apiKey, setApiKey] = useState(import.meta.env.VITE_DASHBOARD_API_KEY || '');
+  const baseUrl = getApiBaseUrl();
+  const [bearerToken, setBearerToken] = useState(getAuthToken());
   const [notifications, setNotifications] = useState({ email: true, slack: false, weekly: true, alerts: true });
   const [dataRefresh, setDataRefresh] = useState('5');
   const [saved, setSaved] = useState(false);
@@ -21,6 +22,9 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ darkMode, toggleDark }) => {
   const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
 
   const handleSave = () => {
+    if (typeof window !== 'undefined' && bearerToken) {
+      sessionStorage.setItem('manipal_bearer_token', bearerToken);
+    }
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
@@ -28,9 +32,13 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ darkMode, toggleDark }) => {
   const handleTestConnection = async () => {
     setTestStatus('testing');
     try {
-      const res = await fetch(`${baseUrl}/dashboard/leads/`, {
-        headers: { 'X-Dashboard-API-Key': apiKey, 'Content-Type': 'application/json' },
-      });
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (bearerToken) {
+        headers['Authorization'] = `Bearer ${bearerToken}`;
+      }
+      const cleanBase = baseUrl.replace(/\/+$/, '');
+      const endpoint = cleanBase.endsWith('/api') ? `${cleanBase}/v2/onboarding/leads/list/` : `${cleanBase}/api/v2/onboarding/leads/list/`;
+      const res = await fetch(endpoint, { headers });
       setTestStatus(res.ok ? 'ok' : 'fail');
     } catch {
       setTestStatus('fail');
@@ -81,29 +89,30 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ darkMode, toggleDark }) => {
           </div>
           <div>
             <label className={`text-xs font-medium block mb-1.5 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-              Dashboard API Key <span className="text-brand-blue font-normal">(X-Dashboard-API-Key header)</span>
+              OAuth2 Bearer Token <span className="text-brand-blue font-normal">(Authorization: Bearer header)</span>
             </label>
             <input
               type="password"
-              value={apiKey}
-              onChange={e => setApiKey(e.target.value)}
-              placeholder="Enter your Dashboard API Key..."
+              value={bearerToken}
+              onChange={e => setBearerToken(e.target.value)}
+              placeholder="Enter your Bearer Token (or set VITE_BEARER_TOKEN in .env)..."
               className={`w-full px-3 py-2 rounded-xl border text-xs font-mono ${darkMode ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder:text-gray-500' : 'bg-white border-gray-200 text-gray-700 placeholder:text-gray-400'} outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20`}
             />
             <p className={`text-xs mt-1 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-              Sent as <code className="font-mono">X-Dashboard-API-Key</code> header to all <code className="font-mono">/dashboard/*</code> endpoints.
+              Sent as <code className="font-mono">Authorization: Bearer &lt;token&gt;</code> header to live Manipal API endpoints.
             </p>
           </div>
 
           {/* Active Endpoints */}
           <div>
-            <label className={`text-xs font-medium block mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Active Endpoints</label>
+            <label className={`text-xs font-medium block mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Live Endpoints</label>
             <div className="space-y-1.5">
               {[
-                { path: '/dashboard/leads/', label: 'Lead Statistics' },
-                { path: '/dashboard/applications/', label: 'Application Stats' },
-                { path: '/dashboard/loans/', label: 'Loan Portfolio' },
-                { path: '/dashboard/team/', label: 'Team Performance' },
+                { path: '/api/v2/onboarding/leads/list/', label: 'Live Leads List' },
+                { path: '/api/v2/onboarding/applications/list/', label: 'Live Applications' },
+                { path: '/loan/all/', label: 'Loan Portfolio & Disbursals' },
+                { path: '/user/employee', label: 'Team & Field Officers' },
+                { path: '/branch/data', label: 'Branch Analytics' },
               ].map(ep => (
                 <div key={ep.path} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${darkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />

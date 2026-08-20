@@ -18,6 +18,68 @@ from django.http import HttpResponse as DjangoHttpResponse
 from ..tasks import export_today_timestamps_task
 from users.selfie_urls import get_selfie_access_url
 import pytz
+from django.db.models import Count
+
+
+class TimeStampLoginStatsView(APIView):
+    """
+    Read-only dashboard endpoint for TimeStamp login metrics.
+
+    Business logic:
+      - TOTAL LOGINS   = count of every CHECKED_IN record in the date range.
+      - UNIQUE LOGINS  = count of DISTINCT user_ids among CHECKED_IN records.
+      - CHECKED_OUT records are NEVER counted as logins.
+
+    Returns stats for: today, this_week, this_month, all_time.
+    """
+
+    def get(self, request, *args, **kwargs):
+        try:
+            today = datetime.date.today()
+
+            # Monday of the current week
+            week_start = today - datetime.timedelta(days=today.weekday())
+
+            # First day of the current month
+            month_start = today.replace(day=1)
+
+            # All TimeStamp records (CHECKED_IN + CHECKED_OUT)
+            all_qs = TimeStamp.objects.all()
+
+            # Base queryset: only CHECKED_IN records for logins
+            base_qs = TimeStamp.objects.filter(status=TIMESTAMP.CHECKED_IN.value)
+
+            def compute_stats(ci_qs, total_qs):
+                return {
+                    'total_timestamp_records': total_qs.count(),
+                    'total_logins': ci_qs.count(),
+                    'unique_logins': ci_qs.values('user').distinct().count(),
+                }
+
+            today_ci = base_qs.filter(created_at__date=today)
+            today_all = all_qs.filter(created_at__date=today)
+
+            week_ci = base_qs.filter(created_at__date__gte=week_start, created_at__date__lte=today)
+            week_all = all_qs.filter(created_at__date__gte=week_start, created_at__date__lte=today)
+
+            month_ci = base_qs.filter(created_at__year=today.year, created_at__month=today.month)
+            month_all = all_qs.filter(created_at__year=today.year, created_at__month=today.month)
+
+            data = {
+                'today': compute_stats(today_ci, today_all),
+                'this_week': compute_stats(week_ci, week_all),
+                'this_month': compute_stats(month_ci, month_all),
+                'all_time': compute_stats(base_qs, all_qs),
+                'date': str(today),
+            }
+
+            return HttpResponse.Success(data)
+
+
+        except Exception as e:
+            traceback.print_exc()
+            return HttpResponse.InternalServerError(str(e))
+
 
 
 class TimeStampView(APIView):

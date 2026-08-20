@@ -1,33 +1,102 @@
 export interface Lead {
-  id: string | number;
+  id: string;
+  lead_code?: string;
+  customer_id?: string;
   name: string;
   email: string;
   phone: string;
+  product_category?: string;
+  product_subcategory?: string;
+  product_display?: string;
+  lead_type?: string;
+  source?: string;
+  crm_type?: string;
+  state?: string;
+  pincode?: string;
+  amount?: number;
+  status: string;
+  created_at: string;
+  modified_at?: string;
+  created_by?: string;
+  assigned_to?: string;
+  punched_by?: string;
+  team?: string;
+  application_id?: string;
+  prescreen_status?: boolean;
+  isFreshOnboardingSubmitted?: boolean;
+  lending_partner?: string;
+  // Legacy / display properties for backwards compatibility
   organization?: string;
   industry?: string;
   plan?: string;
-  status: string;
-  created_at: string;
-  updated_at?: string;
   region?: string;
   city?: string;
-  ai_requests?: number;
-  health_score?: number;
   revenue?: number;
-  users?: number;
-  projects?: number;
-  storage?: number;
-  last_active?: string;
-  product_subcategory?: string;
-  contact_number?: string;
-  pan_number?: string;
+  health_score?: number;
 }
 
-export interface ApiResponse {
+export interface Application {
+  application_id: string;
+  lead_code?: string;
+  customer_id?: string;
+  name: string;
+  date: string;
+  status: string;
+  amount: number;
+  disbursed_amount: number;
+  loan_type?: string;
+  product_category?: string;
+  product_subcategory?: string;
+  lead_type?: string;
+  mobile_number?: string;
+  email_address?: string;
+  pincode?: string;
+  state?: string;
+  district?: string;
+  bank_branch?: string;
+  lending_partner?: string;
+  prescreen_submitted?: boolean;
+  isFreshOnboardingSubmitted?: boolean;
+  punched_by?: string;
+  punched_by_name?: string;
+  assigned_rh?: string;
+  assigned_rh_name?: string;
+  rh_remarks?: string;
+}
+
+export interface Employee {
+  user_id: string;
+  username: string;
+  employee_id?: string;
+  first_name: string;
+  last_name: string;
+  phone: string;
+  email?: string;
+  role: string;
+  designation?: string;
+  team?: string;
+  is_active: boolean;
+  date_of_joining?: string;
+  state?: string;
+  district?: string;
+  city?: string;
+  pincode?: string;
+  assigned_to?: string;
+  assign_so?: string;
+  branch_name?: string;
+  branch_code?: string;
+  // Computed metrics
+  leads_handled_count?: number;
+  applications_handled_count?: number;
+  disbursed_applications_count?: number;
+  conversion_rate?: number;
+}
+
+export interface ApiResponse<T> {
   count: number;
   next: string | null;
   previous: string | null;
-  results: Lead[];
+  results: T[];
 }
 
 export interface KPICard {
@@ -59,4 +128,5 @@ export interface ActivityEvent {
   avatar: string;
 }
 
-export type TabId = 'overview' | 'users' | 'activity' | 'insights' | 'performance' | 'analytics' | 'reports' | 'settings';
+export type TabId = 'overview' | 'leads' | 'applications' | 'employees' | 'analytics' | 'settings';
+

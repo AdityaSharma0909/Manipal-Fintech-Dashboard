@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { Section } from "../components/ui";
 
 export const Settings: React.FC = () => {
-  const [baseUrl, setBaseUrl] = useState(import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000");
-  const [apiKey, setApiKey] = useState(import.meta.env.VITE_DASHBOARD_API_KEY ?? "");
+  const [baseUrl, setBaseUrl] = useState(import.meta.env.VITE_API_BASE_URL ?? "https://devmanipal.getafixtechnologies.com/api");
+  const [bearerToken, setBearerToken] = useState(import.meta.env.VITE_BEARER_TOKEN ?? import.meta.env.VITE_API_TOKEN ?? "");
   const [theme, setTheme] = useState("dark");
   const [locale, setLocale] = useState("en-IN");
   const [npaLimit, setNpaLimit] = useState(90);
@@ -37,13 +37,14 @@ export const Settings: React.FC = () => {
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                <label style={{ fontSize: "12px", color: "var(--text-secondary)", fontWeight: 600 }}>Dashboard API Access Token (API Key)</label>
+                <label style={{ fontSize: "12px", color: "var(--text-secondary)", fontWeight: 600 }}>OAuth2 Bearer Token (Authorization: Bearer header)</label>
                 <input
-                  type="text"
+                  type="password"
                   className="table-search-input font-mono"
                   style={{ width: "100%" }}
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
+                  value={bearerToken}
+                  placeholder="Enter Bearer Token (or configure VITE_BEARER_TOKEN in .env)"
+                  onChange={(e) => setBearerToken(e.target.value)}
                 />
               </div>
 

@@ -7,7 +7,7 @@ from .views.UserViewCustomer import CustomerGenerateOtpView, CustomerVerifyOtpVi
 from .views.AddresView import AddressesView 
 from .views.FCMView import UserDeviceView
 from .views.Registration import RegistrationView,BranchManager,AllUsers ,UserAll, UserByRole, TestView
-from .views.TimeStamp import TimeStampView, TimeStampExportView, TimeStampDownloadExcelView
+from .views.TimeStamp import TimeStampView, TimeStampExportView, TimeStampDownloadExcelView, TimeStampLoginStatsView
 from .views.all_employess import AllEmployeeView, ApplicationPerEmployee, SalesOfficerBulkUploadView
 from .views.export_user_data import ExportUserView
 from .search import UserSearchAPI
@@ -27,6 +27,7 @@ urlpatterns = [
     path(r'checkUser/', TimeStampView.as_view()),
     path(r'export-timestamp/', TimeStampExportView.as_view()),
     path(r'download-timestamp-excel/', TimeStampDownloadExcelView.as_view()),
+    path(r'login-stats/', TimeStampLoginStatsView.as_view()),
     path(r"userDevice/", UserDeviceView.as_view()),
     path(r"register/", RegistrationView.as_view()),
     path(r"bm/", BranchManager.as_view()),

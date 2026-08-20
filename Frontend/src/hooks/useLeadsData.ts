@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Lead } from '../types';
+import { getApiBaseUrl, getAuthHeaders } from '../utils/apiAuth';
 
 interface UseLeadsDataReturn {
   leads: Lead[];
@@ -11,109 +12,65 @@ interface UseLeadsDataReturn {
   lastSync: Date | null;
 }
 
-const POLL_INTERVAL_MS = 10 * 1000; // 10 seconds
+const POLL_INTERVAL_MS = 15 * 1000; // 15 seconds
 
-
-/** Stable numeric hash from a string (no randomness). */
-const stableHash = (str: string): number => {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) {
-    h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
-  }
-  return Math.abs(h);
-};
-
-const mapBackendLeadToFrontend = (lead: any, idx: number): Lead => {
-  // --- Region: derived from branch / city / state ---
-  const state = (lead.state || lead.city || lead.assigned_to?.branch_name || '').toLowerCase();
-  let region = 'South';
-  if (state.includes('delhi') || state.includes('chandigarh') || state.includes('haryana') || state.includes('punjab') || state.includes('uttar pradesh')) region = 'North';
-  else if (state.includes('mumbai') || state.includes('pune') || state.includes('gujarat') || state.includes('maharashtra') || state.includes('goa') || state.includes('madhya pradesh') || state.includes('rajasthan')) region = 'West';
-  else if (state.includes('kolkata') || state.includes('bhubaneswar') || state.includes('odisha') || state.includes('bihar') || state.includes('west bengal') || state.includes('assam')) region = 'East';
-  else if (idx % 4 === 0) region = 'North';
-  else if (idx % 4 === 1) region = 'West';
-  else if (idx % 4 === 2) region = 'East';
-
-  // --- Industry: derived from lending_type ---
-  const lendingType = (lead.product_subcategory || lead.lending_type || lead.loan_type || '').toLowerCase();
-  let industry = 'Fintech';
-  if (lendingType.includes('health') || lendingType.includes('wellness')) industry = 'Healthcare';
-  else if (lendingType.includes('home')) industry = 'E-Commerce';
-  else if (lendingType.includes('education') || lendingType.includes('edu')) industry = 'EdTech';
-  else if (lendingType.includes('sme') || lendingType.includes('business') || lendingType.includes('msme')) industry = 'SaaS';
-  else if (lendingType.includes('gold')) industry = 'Manufacturing';
-  else if (lendingType.includes('personal')) industry = 'Logistics';
-
-  // --- Plan: derived from lending type ---
-  const plans = ['Starter', 'Pro', 'Business', 'Enterprise'];
-  let planIdx = idx % plans.length;
-  if (lendingType.includes('business') || lendingType.includes('sme')) planIdx = 2;
-  else if (lendingType.includes('home') || lendingType.includes('lap')) planIdx = 3;
-  else if (lendingType.includes('gold') || lendingType.includes('personal')) planIdx = 1;
-
-  // --- Status: preserve real database status ---
+const mapBackendLeadToFrontend = (lead: any): Lead => {
   const status = (lead.status || 'DRAFT').toUpperCase();
+  const leadId = String(lead.id || lead.lead_id || lead.lead_code || '');
 
-  // --- Health Score: derived from real status (no random) ---
+  // Calculate health score based on actual backend lead status
   const healthMap: Record<string, number> = {
-    CONVERTED: 92, DISBURSED: 90, APPROVED: 88, INTERESTED: 75,
-    UNDER_REVIEW: 72, CONTACTED: 68, NEW: 70, NEW_LEAD: 65,
-    CLOSED_LOST: 28, REJECTED: 25, NPA: 15, BAD_STANDING: 20,
-    APPLICATION_CREATED: 75, ACTIVE: 85
+    CONVERTED: 95,
+    DISBURSED: 95,
+    APPROVED: 90,
+    APPLICATION_CREATED: 85,
+    ACTIVE: 80,
+    UNVERIFIED: 60,
+    NOT_ELIGIBLE: 20,
+    AUTO_CLOSED: 10,
+    REJECTED: 15,
   };
-  const health_score = healthMap[status] ?? 60;
+  const health_score = healthMap[status] ?? 50;
 
-  // --- Revenue: derived from lending_type (no random) ---
-  const revenueMap: Record<string, number> = {
-    'home loan': 125000, 'home': 125000,
-    'business loan': 85000, 'business': 85000, 'sme': 95000, 'msme': 78000,
-    'personal loan': 42000, 'personal': 42000,
-    'gold loan': 35000, 'gold': 35000,
-    'lap': 110000, 'education': 55000,
-  };
-  let revenue = 50000;
-  for (const [key, val] of Object.entries(revenueMap)) {
-    if (lendingType.includes(key)) { revenue = val; break; }
-  }
-
-  // --- Other numeric fields: stable hash from lead_id (deterministic, not random) ---
-  const leadId = lead.id || lead.lead_id || lead.uuid || (idx + 1);
-  const seed = stableHash(String(leadId));
-  const ai_requests = 200 + (seed % 4800);
-  const users = 5 + (seed % 145);
-  const projects = 1 + (seed % 9);
-  const storage = 2 + (seed % 78);
-
-  // --- Name / Contact ---
-  const clientName = lead.customer_name || lead.first_name || lead.account?.first_name || `Lead ${idx + 1}`;
-  const clientPhone = lead.contact_number || lead.phone || lead.account?.phone_no || '';
-  const clientEmail = lead.email_address || lead.email || lead.account?.email_id || `client-${idx + 1}@manipalfintech.com`;
-  const clientOrg = lead.lending_partner || lead.lender_name || lead.lender?.lender_name || 'Manipal Fintech Sourced';
+  const rawAmount = Number(lead.amount || 0);
 
   return {
     id: leadId,
-    name: clientName,
-    email: clientEmail,
-    phone: clientPhone,
-    organization: clientOrg,
-    industry,
-    plan: plans[planIdx] as any,
-    status,
-    created_at: lead.created_at || new Date().toISOString(),
-    updated_at: lead.updated_at || new Date().toISOString(),
-    region,
-    city: lead.city || lead.state || 'Unknown',
-    ai_requests,
-    health_score,
-    revenue,
-    users,
-    projects,
-    storage,
-    last_active: lead.updated_at || lead.created_at || new Date().toISOString(),
-    product_subcategory: lead.product_subcategory || lead.lending_type || 'Unknown',
+    lead_code: lead.lead_code || undefined,
+    customer_id: lead.customer_id || undefined,
+    name: lead.customer_name || lead.first_name || `Lead ${lead.lead_code || leadId}`,
+    email: lead.email_address || lead.email || '',
+    phone: lead.contact_number || lead.phone || '',
+    product_category: lead.product_category || 'LOAN',
+    product_subcategory: lead.product_subcategory || 'GOLD_LOAN',
+    product_display: lead.product_display || lead.product_subcategory || 'Gold Loan',
+    lead_type: lead.lead_type || 'FRESH',
+    source: lead.source || 'MoneyPal',
+    crm_type: lead.crm_type || undefined,
+    state: lead.state || 'KARNATAKA',
+    pincode: lead.pincode || undefined,
+    amount: rawAmount,
+    status: status,
+    created_at: lead.created_at || lead.created_on || new Date().toISOString(),
+    modified_at: lead.modified_at || lead.created_at || new Date().toISOString(),
+    created_by: lead.created_by ? String(lead.created_by) : undefined,
+    assigned_to: lead.assigned_to ? String(lead.assigned_to) : undefined,
+    punched_by: lead.punched_by ? String(lead.punched_by) : undefined,
+    team: lead.team || undefined,
+    application_id: lead.application_id || undefined,
+    prescreen_status: Boolean(lead.prescreen_status),
+    isFreshOnboardingSubmitted: Boolean(lead.isFreshOnboardingSubmitted),
+    lending_partner: lead.lending_partner || 'AXIS_BANK',
+    // Display fallbacks
+    organization: lead.lending_partner || 'Manipal Fintech',
+    industry: lead.product_subcategory || 'Fintech',
+    plan: lead.lead_type || 'Fresh',
+    region: lead.state || 'South',
+    city: lead.district || lead.city || lead.state || 'Unknown',
+    revenue: rawAmount,
+    health_score: health_score,
   };
 };
-
 
 export const useLeadsData = (): UseLeadsDataReturn => {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -130,38 +87,51 @@ export const useLeadsData = (): UseLeadsDataReturn => {
     } else {
       setLoading(true);
     }
-    setError(null);
 
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-    const apiKey = import.meta.env.VITE_DASHBOARD_API_KEY || '';
+    const baseUrl = getApiBaseUrl();
+    const headers = getAuthHeaders();
 
     try {
-      let currentUrl: string | null = `${baseUrl}/api/v2/onboarding/leads/list/`;
+      const buildUrl = (base: string, path: string) => {
+        const cleanBase = base.replace(/\/+$/, '');
+        let cleanPath = path.replace(/^\/+/, '');
+        if (cleanBase.endsWith('/api') && cleanPath.startsWith('api/')) {
+          cleanPath = cleanPath.substring(4);
+        }
+        return `${cleanBase}/${cleanPath}`;
+      };
+
+      // Fetch pages up to total count or MAX_PAGES to ensure full dataset
+      let currentUrl: string | null = buildUrl(baseUrl, 'api/v2/onboarding/leads/list/?page_size=100');
       const allRawLeads: any[] = [];
       let apiTotalCount = 0;
+      let pagesFetched = 0;
+      const MAX_PAGES = 10;
 
-      while (currentUrl) {
-        const response = await fetch(currentUrl, {
-          headers: {
-            'X-Dashboard-API-Key': apiKey,
-            'Content-Type': 'application/json',
-          },
-        });
+      while (currentUrl && pagesFetched < MAX_PAGES) {
+        pagesFetched++;
+        const response = await fetch(currentUrl, { headers });
+
+        if (response.status === 401) {
+          throw new Error('Authentication required: Bearer token is missing or invalid.');
+        }
 
         if (!response.ok) {
           throw new Error(`API returned ${response.status} ${response.statusText}`);
         }
 
         const data = await response.json();
-        const pageLeads = data?.data?.results?.leads || data?.data?.leads || data?.results?.leads || data?.results || [];
+        const pageLeads = data?.data?.results?.leads || data?.data?.leads || data?.results?.leads || data?.results || (Array.isArray(data?.data) ? data.data : []);
         apiTotalCount = data?.data?.count ?? data?.count ?? apiTotalCount;
 
-        for (const item of pageLeads) {
-          allRawLeads.push(item);
+        if (Array.isArray(pageLeads)) {
+          for (const item of pageLeads) {
+            allRawLeads.push(item);
+          }
         }
 
         const rawNext: string | null = data?.data?.next ?? data?.next ?? null;
-        if (rawNext) {
+        if (rawNext && pagesFetched < MAX_PAGES) {
           try {
             const parsedNext = new URL(rawNext, baseUrl);
             const baseParsed = new URL(baseUrl);
@@ -176,13 +146,13 @@ export const useLeadsData = (): UseLeadsDataReturn => {
         }
       }
 
-      // Deduplicate by lead ID / UUID
+      // Deduplicate strictly by unique lead ID
       const uniqueRawLeads: any[] = [];
-      const seenIds = new Set<string | number>();
+      const seenIds = new Set<string>();
 
       for (const item of allRawLeads) {
-        const itemKey = item.id || item.lead_id || item.uuid;
-        if (itemKey != null) {
+        const itemKey = String(item.id || item.lead_id || item.lead_code || '');
+        if (itemKey) {
           if (!seenIds.has(itemKey)) {
             seenIds.add(itemKey);
             uniqueRawLeads.push(item);
@@ -192,22 +162,22 @@ export const useLeadsData = (): UseLeadsDataReturn => {
         }
       }
 
-      const enriched = uniqueRawLeads.map((lead: any, idx: number) => mapBackendLeadToFrontend(lead, idx));
+      const enriched = uniqueRawLeads.map((lead: any) => mapBackendLeadToFrontend(lead));
 
       setLeads(enriched);
       setTotalCount(apiTotalCount || enriched.length);
       setLastSync(new Date());
+      setError(null);
     } catch (err: any) {
-      console.error('[LeadsData] Failed to fetch leads from Django backend:', err.message);
-      setError(`Failed to fetch live data: ${err.message}`);
+      console.error('[LeadsData] Failed to fetch leads from API:', err.message);
+      setError(err.message || 'Failed to fetch live leads data');
       setLastSync(new Date());
     } finally {
       setLoading(false);
       setIsPolling(false);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Initial fetch + polling
   useEffect(() => {
     fetchLeads(false);
 
@@ -222,4 +192,3 @@ export const useLeadsData = (): UseLeadsDataReturn => {
 
   return { leads, loading, isPolling, error, totalCount, refetch: () => fetchLeads(false), lastSync };
 };
-

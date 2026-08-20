@@ -1,18 +1,25 @@
 import React, { useState, useMemo } from 'react';
 import { Search, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Download, Filter, MoreHorizontal, TrendingUp } from 'lucide-react';
-import { Lead } from '../types';
+import { Lead, Application } from '../types';
 
 interface LeadsTableProps {
   leads: Lead[];
+  applications?: Application[];
   darkMode: boolean;
-  loading: boolean;
+  loading?: boolean;
+  totalCount?: number;
+  onSelectCustomer?: (lead: Lead) => void;
 }
 
 const statusColors: Record<string, string> = {
   ACTIVE: 'bg-emerald-100 text-emerald-700 border-emerald-200',
   APPLICATION_CREATED: 'bg-blue-100 text-blue-700 border-blue-200',
   DISBURSED: 'bg-indigo-100 text-indigo-700 border-indigo-200',
+  DISBURSEMENT_READY: 'bg-indigo-100 text-indigo-700 border-indigo-200',
+  BT_FUND_DISBURSED: 'bg-indigo-100 text-indigo-700 border-indigo-200',
   REJECTED: 'bg-rose-100 text-rose-700 border-rose-200',
+  REJECTED_BY_UNDERWRITING: 'bg-rose-100 text-rose-700 border-rose-200',
+  APPLICATION_REJECTED_BY_BRANCH_EXECUTIVE: 'bg-rose-100 text-rose-700 border-rose-200',
   DRAFT: 'bg-gray-100 text-gray-700 border-gray-200',
   // legacy mock fallbacks
   Active: 'bg-emerald-100 text-emerald-700 border-emerald-200',
@@ -30,7 +37,7 @@ const planColors: Record<string, string> = {
 
 type SortKey = keyof Lead;
 
-const LeadsTable: React.FC<LeadsTableProps> = ({ leads, darkMode, loading }) => {
+const LeadsTable: React.FC<LeadsTableProps> = ({ leads, applications = [], darkMode, loading }) => {
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('created_at');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
@@ -39,26 +46,86 @@ const LeadsTable: React.FC<LeadsTableProps> = ({ leads, darkMode, loading }) => 
   const pageSize = 8;
 
   const filtered = useMemo(() => {
-    let data = leads;
+    let data = [...leads];
+
+    if (statusFilter !== 'All') {
+      const sf = statusFilter.toUpperCase();
+      data = data.filter((l) => {
+        const leadSt = (l.status || '').toUpperCase();
+        const appSt = ((l as any).application_status || '').toUpperCase();
+
+        if (sf === 'DISBURSED') {
+          return leadSt.includes('DISBURS') || appSt.includes('DISBURS') || leadSt === 'DISBURSED';
+        }
+        if (sf === 'REJECTED') {
+          return leadSt.includes('REJECT') || appSt.includes('REJECT') || leadSt === 'REJECTED';
+        }
+        if (sf === 'APPLICATION_CREATED') {
+          return leadSt === 'APPLICATION_CREATED' || Boolean(l.application_id) || appSt.length > 0;
+        }
+        return leadSt === sf || appSt === sf;
+      });
+
+      // If DISBURSED or REJECTED status filter is selected, include matching records from applications list
+      if ((sf === 'DISBURSED' || sf === 'REJECTED') && applications.length > 0) {
+        const matchingApps = applications.filter((a) => {
+          const ast = (a.status || '').toUpperCase();
+          if (sf === 'DISBURSED') return ast.includes('DISBURS') || ast === 'DISBURSED';
+          if (sf === 'REJECTED') return ast.includes('REJECT') || ast === 'REJECTED';
+          return ast === sf;
+        });
+
+        const appLeads: Lead[] = matchingApps.map((a) => ({
+          id: a.application_id,
+          lead_code: a.lead_code || a.application_id,
+          name: a.name || `Applicant ${a.application_id}`,
+          email: a.email_address || 'N/A',
+          phone: a.mobile_number || 'N/A',
+          product_category: a.product_category || 'Loan',
+          product_subcategory: a.product_subcategory || a.loan_type || 'Gold Loan',
+          status: a.status || sf,
+          created_at: a.date || new Date().toISOString(),
+          amount: a.amount || a.disbursed_amount || 0,
+          lending_partner: a.lending_partner || 'AXIS',
+          organization: a.lending_partner || 'Fintech Partner',
+          industry: a.loan_type || 'Loan',
+          plan: 'Enterprise',
+          region: a.state || 'Karnataka',
+          health_score: sf === 'DISBURSED' ? 95 : 45,
+          revenue: a.disbursed_amount || a.amount || 0,
+          ai_requests: 10,
+        }));
+
+        const existingIds = new Set(data.map((d) => d.id));
+        appLeads.forEach((al) => {
+          if (!existingIds.has(al.id)) {
+            data.push(al);
+          }
+        });
+      }
+    }
+
     if (search) {
       const q = search.toLowerCase();
-      data = data.filter(l =>
-        l.name?.toLowerCase().includes(q) ||
-        l.email?.toLowerCase().includes(q) ||
-        l.organization?.toLowerCase().includes(q) ||
-        l.city?.toLowerCase().includes(q)
+      data = data.filter(
+        (l) =>
+          l.name?.toLowerCase().includes(q) ||
+          l.email?.toLowerCase().includes(q) ||
+          l.organization?.toLowerCase().includes(q) ||
+          l.city?.toLowerCase().includes(q) ||
+          l.status?.toLowerCase().includes(q) ||
+          l.lending_partner?.toLowerCase().includes(q)
       );
     }
-    if (statusFilter !== 'All') {
-      data = data.filter(l => l.status === statusFilter);
-    }
+
     return data.sort((a, b) => {
       const av = a[sortKey] ?? '';
       const bv = b[sortKey] ?? '';
       const cmp = String(av).localeCompare(String(bv), undefined, { numeric: true });
       return sortDir === 'asc' ? cmp : -cmp;
     });
-  }, [leads, search, sortKey, sortDir, statusFilter]);
+  }, [leads, applications, search, sortKey, sortDir, statusFilter]);
+
 
   const pages = Math.ceil(filtered.length / pageSize);
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -75,12 +142,30 @@ const LeadsTable: React.FC<LeadsTableProps> = ({ leads, darkMode, loading }) => 
   );
 
   const exportCSV = () => {
-    const headers = ['Name', 'Organization', 'Email', 'Industry', 'Plan', 'Status', 'Region', 'City', 'Health Score', 'Revenue', 'AI Requests'];
-    const rows = filtered.map(l => [l.name, l.organization, l.email, l.industry, l.plan, l.status, l.region, l.city, l.health_score, l.revenue, l.ai_requests]);
-    const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const headers = ['Lead ID', 'Lead Code', 'Customer Name', 'Phone', 'Email', 'Product Category', 'Product Subcategory', 'Lead Type', 'Lending Partner', 'Amount (INR)', 'Status', 'State', 'Created At'];
+    const rows = filtered.map(l => [
+      `"${l.id || ''}"`,
+      `"${l.lead_code || ''}"`,
+      `"${(l.name || '').replace(/"/g, '""')}"`,
+      `"${l.phone || ''}"`,
+      `"${l.email || ''}"`,
+      `"${l.product_category || ''}"`,
+      `"${l.product_subcategory || ''}"`,
+      `"${l.lead_type || ''}"`,
+      `"${l.lending_partner || ''}"`,
+      l.amount || 0,
+      `"${l.status || ''}"`,
+      `"${l.state || ''}"`,
+      `"${l.created_at || ''}"`
+    ]);
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'leads.csv'; a.click();
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `manipal_leads_export_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (

@@ -9,15 +9,14 @@ interface NavTabsProps {
 }
 
 const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
-  { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={14} /> },
-  { id: 'users', label: 'Users', icon: <Users size={14} /> },
-  { id: 'activity', label: 'Activity', icon: <Activity size={14} /> },
-  { id: 'insights', label: 'Customer Insights', icon: <Lightbulb size={14} /> },
-
-  { id: 'performance', label: 'Performance', icon: <Zap size={14} /> },
-  { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={14} /> },
-  { id: 'reports', label: 'Reports', icon: <FileText size={14} /> },
+  { id: 'overview', label: 'Executive Overview', icon: <LayoutDashboard size={14} /> },
+  /* Temporarily disabled non-overview tabs
+  { id: 'leads', label: 'Leads Module', icon: <Users size={14} /> },
+  { id: 'applications', label: 'Applications Module', icon: <FileText size={14} /> },
+  { id: 'employees', label: 'Employees Module', icon: <Users size={14} /> },
+  { id: 'analytics', label: 'Analytics Center', icon: <BarChart3 size={14} /> },
   { id: 'settings', label: 'Settings', icon: <Settings size={14} /> },
+  */
 ];
 
 const NavTabs: React.FC<NavTabsProps> = ({ activeTab, setActiveTab, darkMode }) => {
