@@ -95,7 +95,7 @@ export const useLeadsData = (): UseLeadsDataReturn => {
       const buildUrl = (base: string, path: string) => {
         const cleanBase = base.replace(/\/+$/, '');
         let cleanPath = path.replace(/^\/+/, '');
-        if (cleanBase.endsWith('/api') && cleanPath.startsWith('api/')) {
+        if ((cleanBase.endsWith('/api') || cleanBase.endsWith('/api-proxy')) && cleanPath.startsWith('api/')) {
           cleanPath = cleanPath.substring(4);
         }
         return `${cleanBase}/${cleanPath}`;

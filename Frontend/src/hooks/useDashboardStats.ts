@@ -97,7 +97,7 @@ const POLL_INTERVAL_MS = 20 * 1000;
 export const buildUrl = (baseUrl: string, endpoint: string): string => {
   const cleanBase = baseUrl.replace(/\/+$/, '');
   let cleanEndpoint = endpoint.replace(/^\/+/, '');
-  if (cleanBase.endsWith('/api') && cleanEndpoint.startsWith('api/')) {
+  if ((cleanBase.endsWith('/api') || cleanBase.endsWith('/api-proxy')) && cleanEndpoint.startsWith('api/')) {
     cleanEndpoint = cleanEndpoint.substring(4);
   }
   return `${cleanBase}/${cleanEndpoint}`;

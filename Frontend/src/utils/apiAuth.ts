@@ -1,6 +1,12 @@
 // Safely resolves API Base URL and Authorization Headers without hardcoded credentials
 export const getApiBaseUrl = (): string => {
-  return import.meta.env.VITE_API_BASE_URL || 'https://devmanipal.getafixtechnologies.com/api';
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+  if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
+    return '/api-proxy';
+  }
+  return 'https://devmanipal.getafixtechnologies.com/api';
 };
 
 export const getAuthToken = (): string => {
