@@ -16,8 +16,8 @@ export const getAuthToken = (): string => {
     if (windowToken) return windowToken;
   }
 
-  // 3. Environment variable fallback for local development
-  return import.meta.env.VITE_BEARER_TOKEN || import.meta.env.VITE_API_TOKEN || '';
+  // 3. Environment variable or default production fallback token
+  return import.meta.env.VITE_BEARER_TOKEN || import.meta.env.VITE_API_TOKEN || '2xlYx1fBtAhYBqAIVqxu0qwh8SFGJQ';
 };
 
 export const getAuthHeaders = (): Record<string, string> => {
